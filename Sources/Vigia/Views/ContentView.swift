@@ -29,7 +29,13 @@ struct ContentView: View {
             }
             ToolbarItem(placement: .primaryAction) { RecorderBadge() }
         }
-        .onAppear { model.refresh() }
+        .onAppear {
+            model.startDiscovery()
+            model.refresh()
+        }
+        // Quando um gravador aparece na rede e o endereço atual não responde,
+        // ele é adotado sem pedir nada.
+        .onChange(of: model.discovery.found) { model.adoptDiscoveredIfIdle() }
     }
 }
 
@@ -45,6 +51,12 @@ private struct RecorderBadge: View {
     @State private var editing = false
 
     private var isUp: Bool { model.loadError == nil && !model.days.isEmpty }
+    /// Sem endereço e sem nada achado ainda, o app está procurando — dizer
+    /// "fora do ar" na primeira abertura culparia o gravador por um trabalho
+    /// que ainda nem terminou.
+    private var isSearching: Bool {
+        model.serverHost.isEmpty && model.discovery.found.isEmpty
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -56,9 +68,10 @@ private struct RecorderBadge: View {
             } label: {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(isUp ? Theme.live : Theme.alert)
+                        .fill(isSearching ? Theme.motion : (isUp ? Theme.live : Theme.alert))
                         .frame(width: 7, height: 7)
-                    Text(isUp ? "Gravador no ar" : "Gravador fora do ar")
+                    Text(isSearching ? "Procurando gravador…"
+                         : (isUp ? "Gravador no ar" : "Gravador fora do ar"))
                         .font(.system(size: 11, weight: .medium))
                     if isUp {
                         Text("·").foregroundStyle(Theme.tertiaryText)
@@ -80,12 +93,56 @@ private struct RecorderBadge: View {
     private var recorderPopover: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Gravador").font(.headline)
+
+            // Na rede: o caminho normal. Digitar um IP é o plano B.
+            if model.discovery.found.isEmpty {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small).scaleEffect(0.7)
+                    Text("Procurando na rede…").foregroundStyle(Theme.secondaryText)
+                }
+                .font(.caption)
+            } else {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(model.discovery.found) { recorder in
+                        let isCurrent = recorder.address == model.serverHost
+                        Button {
+                            model.adopt(recorder)
+                            editing = false
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: isCurrent ? "checkmark.circle.fill" : "externaldrive.connected.to.line.below")
+                                    .foregroundStyle(isCurrent ? Theme.live : Theme.secondaryText)
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(recorder.name).font(.caption.weight(.medium))
+                                    Text(recorder.address)
+                                        .font(Theme.numeric(10))
+                                        .foregroundStyle(Theme.tertiaryText)
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 6).padding(.vertical, 4)
+                            .frame(width: 220, alignment: .leading)
+                            .background(isCurrent ? Theme.trough : .clear,
+                                        in: RoundedRectangle(cornerRadius: 5))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Divider()
+            Text("Endereço").font(.caption).foregroundStyle(Theme.secondaryText)
             TextField("endereço:porta", text: Binding(
                 get: { model.serverHost }, set: { model.serverHost = $0 }))
                 .textFieldStyle(.roundedBorder)
                 .font(Theme.numeric(12))
                 .frame(width: 220)
-                .onSubmit { editing = false; model.refresh() }
+                .onSubmit {
+                    Defaults.hostChosenByHand = true
+                    editing = false
+                    model.refresh()
+                }
 
             if let error = model.loadError {
                 Text(error)

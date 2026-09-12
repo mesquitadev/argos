@@ -17,6 +17,7 @@ final class AppModel {
     var serverHost: String {
         didSet { Defaults.serverHost = serverHost }
     }
+    let discovery = Discovery()
 
     private(set) var days: [RecordingDay] = []
     private(set) var events: [MotionEvent] = []
@@ -32,6 +33,35 @@ final class AppModel {
 
     init() {
         serverHost = Defaults.serverHost
+    }
+
+    /// Começa a procurar gravadores e adota o primeiro, quando cabe.
+    ///
+    /// Adotar sozinho só é aceitável enquanto ninguém escolheu um endereço à
+    /// mão: sobrescrever uma escolha explícita porque apareceu outro gravador
+    /// na rede seria tirar o controle de quem já decidiu.
+    func startDiscovery() {
+        discovery.start()
+    }
+
+    /// Passa a usar o gravador indicado, e lembra que a escolha foi feita.
+    func adopt(_ recorder: DiscoveredRecorder, remember: Bool = true) {
+        serverHost = recorder.address
+        if remember { Defaults.hostChosenByHand = true }
+        selected = nil
+        selectedDay = nil
+        refresh()
+    }
+
+    /// Adota o gravador encontrado quando o endereço atual nunca foi escolhido
+    /// e não está respondendo.
+    func adoptDiscoveredIfIdle() {
+        guard !Defaults.hostChosenByHand,
+              loadError != nil || days.isEmpty,
+              let first = discovery.found.first,
+              first.address != serverHost
+        else { return }
+        adopt(first, remember: false)
     }
 
     var liveURL: URL? { server.liveURL() }
@@ -144,7 +174,13 @@ enum Defaults {
     private static let store = UserDefaults.standard
 
     static var serverHost: String {
-        get { store.string(forKey: "serverHost") ?? "192.168.0.19:8088" }
+        get { store.string(forKey: "serverHost") ?? "" }
         set { store.set(newValue, forKey: "serverHost") }
+    }
+
+    /// Se alguém já digitou um endereço. A descoberta respeita essa escolha.
+    static var hostChosenByHand: Bool {
+        get { store.bool(forKey: "hostChosenByHand") }
+        set { store.set(newValue, forKey: "hostChosenByHand") }
     }
 }

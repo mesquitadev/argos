@@ -8,12 +8,18 @@
     <key>CFBundleIdentifier</key>      <string>dev.mesquita.Vigia</string>
     <key>CFBundleIconFile</key>        <string>Vigia</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
-    <key>CFBundleShortVersionString</key> <string>1.1.0</string>
-    <key>CFBundleVersion</key>         <string>3</string>
+    <key>CFBundleShortVersionString</key> <string>1.2.0</string>
+    <key>CFBundleVersion</key>         <string>4</string>
     <key>LSMinimumSystemVersion</key>  <string>14.0</string>
     <key>NSHighResolutionCapable</key> <true/>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Paulo Victor Mesquita · MIT License</string>
+    <!-- Sem declarar os serviços procurados, o macOS bloqueia a busca por
+         Bonjour em silêncio: o navegador sobe, e nunca encontra nada. -->
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_vigia._tcp</string>
+    </array>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Para falar com o gravador e com a câmera na sua rede local.</string>
     <key>NSAppTransportSecurity</key>

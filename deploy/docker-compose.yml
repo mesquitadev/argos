@@ -10,6 +10,7 @@ services:
       - ./record.sh:/config/record.sh:ro
       - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
     environment:
+      TZ: America/Fortaleza
       CAMERA_ID: ${CAMERA_ID:-cam1}
       RTSP_URL: ${RTSP_URL:?defina RTSP_URL no .env}
       SEGMENT_SECONDS: ${SEGMENT_SECONDS:-600}
@@ -28,6 +29,7 @@ services:
       - ./retention.sh:/config/retention.sh:ro
       - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
     environment:
+      TZ: America/Fortaleza
       # Teto de espaço e idade. O que vier primeiro manda — igual a um DVR.
       MAX_GB: ${MAX_GB:-700}
       MAX_DAYS: ${MAX_DAYS:-30}
@@ -45,6 +47,7 @@ services:
       - ./hls.sh:/config/hls.sh:ro
       - hls-data:/hls
     environment:
+      TZ: America/Fortaleza
       CAMERA_ID: ${CAMERA_ID:-cam1}
       RTSP_URL: ${RTSP_URL:?defina RTSP_URL no .env}
     restart: unless-stopped
@@ -63,6 +66,7 @@ services:
       - ${RECORDINGS_PATH:-/srv/vigia}:/recordings:ro
       - hls-data:/hls
     environment:
+      TZ: America/Fortaleza
       CAMERA_ID: ${CAMERA_ID:-cam1}
     restart: unless-stopped
     mem_limit: 64m
@@ -90,6 +94,7 @@ services:
       - ./events.py:/config/events.py:ro
       - hls-data:/hls
     environment:
+      TZ: America/Fortaleza
       CAMERA_ID: ${CAMERA_ID:-cam1}
       CAMERA_HOST: ${CAMERA_HOST:?defina CAMERA_HOST no .env}
       CAMERA_USER: ${CAMERA_USER:?defina CAMERA_USER no .env}

@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!--
+  Anuncia o gravador na rede local, para que o app o encontre sozinho.
+
+  Vai em /etc/avahi/services/vigia.service. O avahi lê a pasta sozinho: não
+  precisa reiniciar o serviço, e não há porta nova aberta — mDNS já roda na
+  5353/udp do próprio avahi.
+-->
+<service-group>
+  <name replace-wildcards="yes">Gravador Vigia (%h)</name>
+  <service>
+    <type>_vigia._tcp</type>
+    <port>8088</port>
+    <txt-record>camera=cam1</txt-record>
+    <txt-record>path=/live/index.json</txt-record>
+  </service>
+</service-group>
