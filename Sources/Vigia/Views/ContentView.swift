@@ -285,11 +285,24 @@ private struct PulsingDot: View {
 /// As gravações: player em cima, linha do tempo de um dia embaixo, episódios ao lado.
 private struct RecordingsView: View {
     @Environment(AppModel.self) private var model
+    /// A análise de movimento vive aqui, junto do player que ela acompanha.
+    @State private var vision = MotionVision()
+    @State private var player = AVPlayer()
+    /// Onde a reprodução está, em hora do dia.
+    @State private var playhead: Date?
+    /// Quantos segundos pular dentro do trecho assim que ele estiver pronto.
+    /// Um `seek` antes do item carregar é simplesmente ignorado.
+    @State private var pendingOffset: TimeInterval?
+    @State private var observer: Any?
+
+    /// Quanto dura cada arquivo. Serve para decidir se um instante cai dentro de
+    /// um trecho ou no buraco entre dois.
+    private let segmentSeconds: TimeInterval = 300
 
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 12) {
-                player
+                videoPane
                 if let day = model.focusedDay {
                     timelinePanel(day)
                 } else {
@@ -306,13 +319,13 @@ private struct RecordingsView: View {
         }
     }
 
-    private var player: some View {
+    private var videoPane: some View {
         ZStack {
             (model.selected == nil ? Theme.surface : Color.black)
-            if let recording = model.selected, let url = model.server.recordingURL(recording) {
+            if let recording = model.selected, model.server.recordingURL(recording) != nil {
                 // Gravação é MP4 comum servido por HTTP: aqui os controles
                 // fazem sentido, porque há começo, meio e fim.
-                RecordedPlayer(url: url).id(recording.id)
+                RecordedPlayer(player: player)
             } else {
                 VStack(spacing: 7) {
                     Image(systemName: "play.rectangle")
@@ -329,8 +342,138 @@ private struct RecordingsView: View {
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline))
+        // A sobreposição fica dentro do recorte, alinhada à imagem: o quadro é
+        // 16:9 e o vídeo também, então coordenada normalizada cai no lugar
+        // certo sem nenhuma correção de letterbox.
+        .overlay { if vision.isEnabled { MotionOverlay(boxes: vision.boxes) } }
         .overlay(alignment: .topLeading) { playerStamp }
+        .overlay(alignment: .topTrailing) { visionToggle }
         .frame(maxWidth: .infinity)
+        .onChange(of: model.selected) { load() }
+        .onAppear { load(); observePlayhead() }
+        .onDisappear { teardown() }
+    }
+
+    /// Troca o trecho em reprodução e reata a análise ao novo fluxo.
+    private func load() {
+        guard let recording = model.selected,
+              let url = model.server.recordingURL(recording) else {
+            vision.detach()
+            player.replaceCurrentItem(with: nil)
+            playhead = nil
+            return
+        }
+        vision.detach()
+        let item = AVPlayerItem(url: url)
+        player.replaceCurrentItem(with: item)
+
+        if let offset = pendingOffset {
+            pendingOffset = nil
+            player.seek(to: CMTime(seconds: offset, preferredTimescale: 600),
+                        toleranceBefore: .zero, toleranceAfter: .zero)
+        }
+        player.play()
+        vision.attach(to: player)
+    }
+
+    /// Vai para um instante do dia, atravessando a fronteira entre arquivos.
+    ///
+    /// Quem clica na linha do tempo pensa em horário, não em arquivo. Aqui se
+    /// descobre qual trecho contém aquele segundo e a que altura dele pular; se
+    /// o instante cai num buraco sem gravação, o começo do trecho seguinte é a
+    /// resposta honesta.
+    private func go(to target: Date) {
+        guard let day = model.focusedDay else { return }
+        let trechos = day.recordings.compactMap { recording -> (Recording, Date)? in
+            guard let start = recording.startedAt else { return nil }
+            return (recording, start)
+        }
+
+        let contendo = trechos.filter {
+            $0.1 <= target && target < $0.1.addingTimeInterval(segmentSeconds)
+        }.max { $0.1 < $1.1 }
+
+        let escolhido = contendo ?? trechos
+            .filter { $0.1 > target }
+            .min { $0.1 < $1.1 }
+            ?? trechos.max { $0.1 < $1.1 }
+
+        guard let (recording, start) = escolhido else { return }
+        let offset = max(0, target.timeIntervalSince(start))
+
+        if recording == model.selected {
+            // Mesmo arquivo: basta pular, sem recarregar nada.
+            player.seek(to: CMTime(seconds: offset, preferredTimescale: 600),
+                        toleranceBefore: .zero, toleranceAfter: .zero)
+            player.play()
+        } else {
+            pendingOffset = offset
+            model.selected = recording
+        }
+    }
+
+    /// Mantém o cursor da linha do tempo colado na imagem.
+    private func observePlayhead() {
+        guard observer == nil else { return }
+        observer = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600),
+            queue: .main) { time in
+                Task { @MainActor in
+                    guard let start = model.selected?.startedAt else { return }
+                    playhead = start.addingTimeInterval(time.seconds)
+                }
+            }
+
+        // Emenda automática: ao acabar um arquivo, entra o seguinte. É o que
+        // faz a gravação parecer contínua, como num DVR, em vez de uma pilha
+        // de trechos de cinco minutos.
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: nil, queue: .main) { _ in
+                Task { @MainActor in advance() }
+            }
+    }
+
+    /// Passa ao trecho seguinte do dia, se houver.
+    private func advance() {
+        guard let day = model.focusedDay,
+              let atual = model.selected?.startedAt else { return }
+        let proximo = day.recordings
+            .compactMap { r -> (Recording, Date)? in
+                guard let s = r.startedAt, s > atual else { return nil }
+                return (r, s)
+            }
+            .min { $0.1 < $1.1 }
+        guard let proximo else { return }
+        pendingOffset = 0
+        model.selected = proximo.0
+    }
+
+    private func teardown() {
+        if let observer { player.removeTimeObserver(observer) }
+        observer = nil
+        NotificationCenter.default.removeObserver(
+            self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
+        vision.detach()
+        player.pause()
+    }
+
+    private var visionToggle: some View {
+        Button {
+            vision.isEnabled.toggle()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: vision.isEnabled ? "viewfinder.circle.fill" : "viewfinder.circle")
+                Text("Marcar movimento")
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(vision.isEnabled ? Theme.motion : Theme.secondaryText)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(.black.opacity(0.55), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(10)
+        .help("Desenha uma caixa onde a imagem mudou entre um quadro e outro")
     }
 
     /// A hora do trecho aberto, sobre o vídeo — a legenda que um sistema de
@@ -351,7 +494,9 @@ private struct RecordingsView: View {
             DayRail()
             Timeline(day: day,
                      episodes: model.episodes(on: day.date),
-                     selected: model.selected) { model.selected = $0 }
+                     selected: model.selected,
+                     playhead: playhead,
+                     onSeek: { go(to: $0) })
         }
         .padding(14)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
@@ -440,23 +585,57 @@ private struct DayRail: View {
 }
 
 /// Reprodução de gravação, com os controles do sistema — aqui eles servem.
+///
+/// O player nasce fora da view porque a análise de movimento precisa do mesmo
+/// fluxo já decodificado: criar um segundo player para analisar decodificaria
+/// o vídeo duas vezes.
 private struct RecordedPlayer: NSViewRepresentable {
-    let url: URL
+    let player: AVPlayer
 
     func makeNSView(context: Context) -> AVPlayerView {
         let view = AVPlayerView()
         view.controlsStyle = .inline
         view.videoGravity = .resizeAspect
-        view.player = AVPlayer(url: url)
-        view.player?.play()
+        view.player = player
         return view
     }
 
-    func updateNSView(_ view: AVPlayerView, context: Context) {}
+    func updateNSView(_ view: AVPlayerView, context: Context) {
+        if view.player !== player { view.player = player }
+    }
 
     static func dismantleNSView(_ view: AVPlayerView, coordinator: ()) {
-        view.player?.pause()
         view.player = nil
+    }
+}
+
+/// As caixas sobre a imagem, onde alguma coisa se mexeu.
+///
+/// Âmbar, a mesma cor que o movimento tem na linha do tempo: a caixa e a barra
+/// dizem a mesma coisa, e usar cores diferentes para o mesmo fato obrigaria a
+/// aprender duas convenções.
+private struct MotionOverlay: View {
+    let boxes: [MotionBox]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            ForEach(boxes) { box in
+                let rect = CGRect(x: box.rect.minX * size.width,
+                                  y: box.rect.minY * size.height,
+                                  width: box.rect.width * size.width,
+                                  height: box.rect.height * size.height)
+                RoundedRectangle(cornerRadius: 2)
+                    .stroke(Theme.motion, lineWidth: 1.5)
+                    // Sombra por baixo do traço: sobre cena clara, uma linha
+                    // âmbar fina some, e a caixa precisa se ler em qualquer luz.
+                    .shadow(color: .black.opacity(0.8), radius: 1)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(.easeOut(duration: 0.12), value: boxes)
     }
 }
 

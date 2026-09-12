@@ -1,31 +1,23 @@
 #!/bin/bash
-# Põe o gravador no ar para a descoberta automática, e acerta o fuso.
+# Acerta o fuso do servidor. Rodar com sudo.
 #
-# Rodar no servidor com sudo. É idempotente: pode rodar de novo sem estragar.
+# A descoberta na rede não está aqui: quem anuncia o gravador é o serviço
+# `mdns` do compose, que sobe junto com o stack e não precisa de root. Este
+# script cuida só do relógio, que é coisa do sistema.
 set -euo pipefail
 
 TZ_DESEJADO="America/Fortaleza"
-DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> Fuso horário"
-# O servidor estava em UTC, então o ffmpeg carimbava os nomes dos arquivos três
-# horas à frente da hora dos eventos — as duas pistas da linha do tempo ficavam
-# desalinhadas mostrando o mesmo instante.
+# Em UTC, o ffmpeg carimbava o nome dos arquivos três horas à frente da hora
+# dos eventos, e as duas pistas da linha do tempo desenhavam o mesmo instante
+# em lugares diferentes.
 timedatectl set-timezone "$TZ_DESEJADO"
 timedatectl set-ntp true
 timedatectl | sed -n '1,4p'
 
-echo "==> Anúncio na rede (Bonjour/mDNS)"
-if ! command -v avahi-daemon >/dev/null; then
-    apt-get update -qq && apt-get install -y -qq avahi-daemon avahi-utils
-fi
-install -m 644 "$DIR/avahi-vigia.service" /etc/avahi/services/vigia.service
-systemctl enable --now avahi-daemon
-systemctl reload avahi-daemon 2>/dev/null || systemctl restart avahi-daemon
-
-echo "==> Liberando mDNS no firewall"
-ufw allow 5353/udp comment "mDNS - descoberta do Vigia" >/dev/null 2>&1 || true
-
-echo "==> Pronto. Anunciado como:"
-avahi-browse -ptr _vigia._tcp 2>/dev/null | grep "^=" | head -3 || \
-    echo "   (aguarde alguns segundos e rode: avahi-browse -rt _vigia._tcp)"
+echo
+echo "==> Agora renomeie o acervo gravado sob o fuso antigo:"
+echo "    sudo ./corrige-fuso-arquivos.sh /srv/vigia -3"
+echo "==> E recrie os containers, para pegarem o fuso novo:"
+echo "    docker compose up -d"

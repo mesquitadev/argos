@@ -10,7 +10,13 @@ struct Timeline: View {
     let day: RecordingDay
     let episodes: [MotionEpisode]
     let selected: Recording?
-    let onSelect: (Recording) -> Void
+    /// Onde a reprodução está, em hora do dia. É o que liga a linha do tempo ao
+    /// vídeo: sem isso são dois controles que falam do mesmo instante sem se
+    /// falarem.
+    let playhead: Date?
+    /// Recebe o instante clicado, não o arquivo: quem decide em que trecho isso
+    /// cai é o chamador, e a fronteira entre arquivos não aparece aqui.
+    let onSeek: (Date) -> Void
 
     /// Onde o cursor está, para mostrar a hora exata sob o ponteiro.
     @State private var hoverX: CGFloat?
@@ -105,6 +111,24 @@ struct Timeline: View {
                     }
                 }
 
+                // Cursor de reprodução: a ponte entre a linha e a imagem.
+                if let playhead, Calendar.current.isDate(playhead, inSameDayAs: day.date) {
+                    let x = offset(playhead, width: width)
+                    ZStack(alignment: .top) {
+                        Rectangle()
+                            .fill(Theme.primaryText)
+                            .frame(width: 2, height: trackHeight)
+                        // Uma cabeça no topo dá o que agarrar com o olho; uma
+                        // linha de 2px sozinha some sobre as faixas âmbar.
+                        Circle()
+                            .fill(Theme.primaryText)
+                            .frame(width: 7, height: 7)
+                            .offset(y: -3)
+                    }
+                    .offset(x: x - 1)
+                    .shadow(color: .black.opacity(0.6), radius: 2)
+                }
+
                 // Marca do agora, só no dia de hoje.
                 if Calendar.current.isDateInToday(day.date) {
                     let x = offset(.now, width: width)
@@ -128,7 +152,7 @@ struct Timeline: View {
             // Clicar em qualquer ponto vai para a gravação daquele instante,
             // em vez de exigir acerto na faixa fina de cinco minutos.
             .onTapGesture { location in
-                seek(fraction: location.x / max(width, 1))
+                onSeek(time(at: location.x / max(width, 1)))
             }
             .onContinuousHover { phase in
                 switch phase {
@@ -150,9 +174,15 @@ struct Timeline: View {
                 swatch(Theme.live, "Agora")
             }
             Spacer()
-            Text("Clique na linha para abrir o trecho")
-                .font(.system(size: 10))
-                .foregroundStyle(Theme.tertiaryText)
+            if let playhead, Calendar.current.isDate(playhead, inSameDayAs: day.date) {
+                Text(playhead.formatted(date: .omitted, time: .standard))
+                    .font(Theme.numeric(10, .medium))
+                    .foregroundStyle(Theme.primaryText)
+            } else {
+                Text("Clique na linha para ir àquele horário")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.tertiaryText)
+            }
         }
     }
 
@@ -175,16 +205,8 @@ struct Timeline: View {
         return date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())
     }
 
-    /// A gravação que cobre aquele instante, ou a anterior mais próxima.
-    private func seek(fraction: CGFloat) {
-        let target = dayStart.addingTimeInterval(secondsInDay * TimeInterval(max(0, min(1, fraction))))
-        let candidates = day.recordings.compactMap { recording -> (Recording, Date)? in
-            guard let start = recording.startedAt else { return nil }
-            return (recording, start)
-        }
-        guard let best = candidates.min(by: {
-            abs($0.1.timeIntervalSince(target)) < abs($1.1.timeIntervalSince(target))
-        }) else { return }
-        onSelect(best.0)
+    /// O instante do dia correspondente a uma posição na linha.
+    private func time(at fraction: CGFloat) -> Date {
+        dayStart.addingTimeInterval(secondsInDay * TimeInterval(max(0, min(1, fraction))))
     }
 }

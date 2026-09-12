@@ -105,5 +105,21 @@ services:
       driver: json-file
       options: { max-size: "5m", max-file: "2" }
 
+  mdns:
+    container_name: vigia-mdns
+    image: python:3.12-alpine
+    restart: unless-stopped
+    # mDNS é multicast: de dentro de uma rede isolada do Docker o anúncio não
+    # alcança ninguém, então este serviço compartilha a rede do host.
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["pip install --quiet --no-cache-dir zeroconf && exec python -u /config/announce.py"]
+    volumes:
+      - ./announce.py:/config/announce.py:ro
+    environment:
+      TZ: America/Fortaleza
+      WEB_PORT: "8088"
+      CAMERA_ID: cam1
+
 volumes:
   hls-data:
