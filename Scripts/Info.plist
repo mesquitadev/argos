@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>            <string>Vigia</string>
+    <key>CFBundleDisplayName</key>     <string>Vigia</string>
+    <key>CFBundleExecutable</key>      <string>Vigia</string>
+    <key>CFBundleIdentifier</key>      <string>dev.mesquita.Vigia</string>
+    <key>CFBundleIconFile</key>        <string>Vigia</string>
+    <key>CFBundlePackageType</key>     <string>APPL</string>
+    <key>CFBundleShortVersionString</key> <string>1.1.0</string>
+    <key>CFBundleVersion</key>         <string>3</string>
+    <key>LSMinimumSystemVersion</key>  <string>14.0</string>
+    <key>NSHighResolutionCapable</key> <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 Paulo Victor Mesquita · MIT License</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Para falar com o gravador e com a câmera na sua rede local.</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- O gravador vive na rede local e não tem certificado; exigir HTTPS
+             aqui impediria o app de falar com ele sem ganho de segurança. -->
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+</dict>
+</plist>
