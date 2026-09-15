@@ -1,8 +1,0 @@
-dev/mesquita/vigia/recorder/CameraRecorder.class
-dev/mesquita/vigia/recorder/RetentionPolicy$Result.class
-dev/mesquita/vigia/recorder/SegmentStore.class
-dev/mesquita/vigia/recorder/SegmentStore$Segment.class
-dev/mesquita/vigia/recorder/CameraRecorder$Camera.class
-dev/mesquita/vigia/recorder/RetentionPolicy.class
-dev/mesquita/vigia/recorder/RetentionPolicy$Limits.class
-dev/mesquita/vigia/recorder/CameraRecorder$Log.class

@@ -2,3 +2,11 @@
 .swiftpm/
 dist/
 .DS_Store
+
+# O arquivo com a senha da câmera. O modelo versionado é o .env.example.
+.env
+deploy/.env
+
+# Saída de build do Java: nunca deve ser versionada.
+server/target/
+*.class
