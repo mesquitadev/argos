@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// Gera o iconset do Bootsmith. Desenhado por código para que qualquer ajuste seja
+/// Gera o iconset do Vigia. Desenhado por código para que qualquer ajuste seja
 /// um diff revisável e as dez resoluções saiam sempre consistentes.
 ///
 /// A forma: uma seta descendo para dentro de um dispositivo — a imagem entrando
