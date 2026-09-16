@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import RetentionSettings from "./RetentionSettings";
 import { bytes } from "../lib/vigia";
 
 /** Quanto disco há, quanto se grava por dia, e quando começa a apagar.
@@ -56,6 +57,8 @@ export default function StoragePanel() {
           {bytes(data.disk.used)} de {bytes(data.disk.total)} usados · {bytes(data.disk.free)} livres
         </p>
       </section>
+
+      <RetentionSettings />
 
       <section className="rounded-xl border border-white/10 bg-surface p-4">
         <h3 className="mb-3 text-[13px] font-semibold">Gravação por dia</h3>

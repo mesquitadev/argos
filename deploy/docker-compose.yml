@@ -24,9 +24,10 @@ services:
   retention:
     image: alpine:3.20
     container_name: vigia-retention
-    entrypoint: ["/bin/sh", "/config/retention.sh"]
+    entrypoint: ["/bin/sh", "/app/retention.sh"]
     volumes:
-      - ./retention.sh:/config/retention.sh:ro
+      - ./api-config:/config
+      - ./retention.sh:/app/retention.sh:ro
       - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
     environment:
       TZ: America/Fortaleza

@@ -22,6 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import auth
+import retention
 
 RECORDINGS = Path(os.environ.get("RECORDINGS_DIR", "/recordings"))
 EXPORTS = Path(os.environ.get("EXPORTS_DIR", "/exports"))
@@ -268,6 +269,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(storage_report())
             return
 
+        if path == "/api/retention":
+            self.send_json({"policy": retention.read(), "plan": retention.plan()})
+            return
+
         m = re.match(r"^/api/export/([0-9a-f-]+)$", path)
         if m:
             with jobs_lock:
@@ -318,6 +323,25 @@ class Handler(BaseHTTPRequestHandler):
 
         if not self.session():
             self.send_json({"error": "não autenticado"}, 401)
+            return
+
+        if path == "/api/retention":
+            try:
+                policy = retention.write(self.body_json())
+            except ValueError as err:
+                self.send_json({"error": str(err)}, 400)
+                return
+            self.send_json({"policy": policy, "plan": retention.plan(policy)})
+            return
+
+        if path == "/api/retention/purge":
+            # Apagar gravação é irreversível: exige a confirmação explícita que
+            # a interface manda junto, para um clique errado não levar o
+            # histórico.
+            if self.body_json().get("confirm") is not True:
+                self.send_json({"error": "confirmação ausente"}, 400)
+                return
+            self.send_json(retention.purge())
             return
 
         if path == "/api/export":
