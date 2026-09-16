@@ -15,6 +15,24 @@
 
 html { color-scheme: dark; }
 
+/* Vidro: desfoque do que está atrás, com um véu claro por cima e uma borda de
+   luz na quina superior. Sobre vídeo funciona melhor que uma tarja opaca —
+   deixa a cena aparecer e ainda assim sustenta o texto em qualquer luz.
+   `saturate` compensa a lavagem de cor que o desfoque provoca. */
+.glass {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Quando o navegador não suporta desfoque, o véu translúcido sozinho não
+   sustenta o texto sobre cena clara: aí vale o fundo sólido. */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass { background: rgba(20, 22, 26, 0.8); }
+}
+
 body {
   margin: 0;
   background: var(--color-canvas);

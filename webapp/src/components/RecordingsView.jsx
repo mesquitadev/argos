@@ -73,12 +73,17 @@ export default function RecordingsView({ days, events, day, onPickDay }) {
   }
 
   return (
-    // Em tela larga a lista fica ao lado, com a mesma altura do conjunto; em
-    // tela estreita ela desce para baixo. É a diferença entre ler de relance e
-    // rolar metros de página.
-    <div className="mx-auto grid max-w-[1400px] gap-3 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-      <div className="min-w-0 space-y-3">
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black">
+    // A altura disponível é dividida: o vídeo fica com a sobra, a linha do
+    // tempo tem tamanho próprio e a lista rola por dentro. Em tela estreita
+    // tudo empilha e a página rola, porque um celular em pé não mostra as três
+    // coisas sem espremer nenhuma.
+    <div className="mx-auto grid h-full max-w-[1400px] grid-rows-[minmax(0,1fr)_auto] gap-3 md:h-full lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-1 lg:items-stretch">
+      <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:row-span-1">
+        {/* Um palco que recebe a altura, e dentro dele o quadro dimensionado
+            pela proporção. Dar `flex-1` ao próprio quadro fazia a altura vir do
+            layout e a proporção virar tarja preta dentro da moldura. */}
+        <div className="grid min-h-0 flex-1 place-items-center [container-type:size]">
+        <div className="relative w-full max-w-full aspect-video overflow-hidden rounded-lg border border-white/10 bg-black md:w-[min(100cqw,calc(100cqh*16/9))] aspect-video">
           <video
             ref={video}
             controls
@@ -89,13 +94,14 @@ export default function RecordingsView({ days, events, day, onPickDay }) {
             className="size-full object-contain"
           />
           {current && (
-            <span className="pointer-events-none absolute left-2.5 top-2.5 rounded bg-black/60 px-2 py-1 text-[11px] font-medium tabular-nums">
+            <span className="glass pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-medium tabular-nums text-white">
               {current.at.toLocaleString("pt-BR")}
             </span>
           )}
         </div>
+        </div>
 
-        <div className="rounded-xl border border-white/10 bg-surface p-3">
+        <div className="shrink-0 rounded-xl border border-white/10 bg-surface p-3">
           <DayRail
             days={days}
             active={day}
@@ -116,7 +122,7 @@ export default function RecordingsView({ days, events, day, onPickDay }) {
 
       {/* Altura fixa em tela larga: sem ela o `flex-1` da lista não tem o que
           dividir, e a coluna cresce empurrando a página em vez de rolar. */}
-      <div className="min-h-0 lg:sticky lg:top-16 lg:h-[calc(100dvh-5rem)]">
+      <div className="min-h-0 lg:h-full">
         <EpisodeList episodes={eps} onPick={seek} />
       </div>
     </div>

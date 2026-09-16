@@ -136,6 +136,18 @@ def storage_report() -> dict:
     }
 
 
+def system_report() -> dict:
+    """O que está rodando e desde quando — a informação que hoje só existe no SSH."""
+    camera = os.environ.get("CAMERA_HOST", "")
+    return {
+        "camera": {"id": CAMERA, "host": camera},
+        "segment_seconds": SEGMENT_SECONDS,
+        "recordings_path": str(RECORDINGS),
+        "server_time": datetime.now().isoformat(),
+        "timezone": os.environ.get("TZ", "—"),
+    }
+
+
 # ---------- exportação ----------
 
 def run_export(job_id: str, start: datetime, end: datetime) -> None:
@@ -273,6 +285,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"policy": retention.read(), "plan": retention.plan()})
             return
 
+        if path == "/api/users":
+            # Nunca devolve o hash: a tela não precisa dele, e o que não sai do
+            # servidor não vaza por um log ou um print de tela.
+            users = load_users()
+            self.send_json([{"user": n, "role": d.get("role", "admin")} for n, d in users.items()])
+            return
+
+        if path == "/api/system":
+            self.send_json(system_report())
+            return
+
         m = re.match(r"^/api/export/([0-9a-f-]+)$", path)
         if m:
             with jobs_lock:
@@ -342,6 +365,50 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "confirmação ausente"}, 400)
                 return
             self.send_json(retention.purge())
+            return
+
+        if path in {"/api/users", "/api/users/delete"}:
+            session = self.session()
+            # Um usuário de leitura não administra outros — senão o papel seria
+            # só um rótulo, que é o que ele era até agora.
+            if session.get("r") != "admin":
+                self.send_json({"error": "apenas administradores"}, 403)
+                return
+
+            data = self.body_json()
+            name = (data.get("user") or "").strip()
+            users = load_users()
+
+            if path == "/api/users/delete":
+                if name not in users:
+                    self.send_json({"error": "usuário não existe"}, 404)
+                    return
+                if len(users) == 1:
+                    self.send_json({"error": "é o único usuário; remover trancaria o sistema"}, 400)
+                    return
+                if name == session["u"]:
+                    self.send_json({"error": "não dá para remover a si mesmo"}, 400)
+                    return
+                del users[name]
+                save_users(users)
+                self.send_json({"ok": True})
+                return
+
+            password = data.get("password") or ""
+            if not re.fullmatch(r"[A-Za-z0-9._-]{2,32}", name):
+                self.send_json({"error": "nome inválido: use letras, números, ponto, hífen ou sublinhado"}, 400)
+                return
+            if len(password) < 8:
+                self.send_json({"error": "a senha precisa de pelo menos 8 caracteres"}, 400)
+                return
+
+            role = "leitura" if data.get("role") == "leitura" else "admin"
+            # Trocar a senha de alguém não deve rebaixar o papel sem querer.
+            if name in users and "role" not in data:
+                role = users[name].get("role", "admin")
+            users[name] = {"password": auth.hash_password(password), "role": role}
+            save_users(users)
+            self.send_json({"user": name, "role": role})
             return
 
         if path == "/api/export":

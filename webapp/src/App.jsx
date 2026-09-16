@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import LiveView from "./components/LiveView";
 import Login from "./components/Login";
+import Nav from "./components/Nav";
 import RecordingsView from "./components/RecordingsView";
+import Settings from "./components/Settings";
 import StoragePanel from "./components/StoragePanel";
 import { useVigia } from "./lib/useVigia";
 import { bytes, defaultDay, sameDay } from "./lib/vigia";
@@ -53,46 +55,49 @@ function Shell({ session, onLogout }) {
   const up = loaded && !error;
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-canvas px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
-        <nav className="flex rounded-lg bg-trough p-0.5">
-          {[["live", "Ao vivo"], ["rec", "Gravações"], ["disk", "Disco"]].map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`rounded-md px-3 py-1 text-[13px] transition ${
-                tab === id ? "bg-neutral-600 text-white" : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+    // Cabine, não página: a altura é a da tela e nada rola por fora. Cada
+    // painel cuida da própria rolagem, que é como um sistema de vigilância se
+    // usa — olhando, não navegando.
+    <div className="flex h-dvh overflow-hidden">
+      <Nav
+        active={tab}
+        onPick={setTab}
+        user={session.user}
+        onLogout={logout}
+        status={{
+          up,
+          text: up ? `${segments.length} trechos · ${bytes(total)}` : "gravador fora do ar",
+        }}
+      />
 
-        <div className="ml-auto flex items-center gap-1.5 text-[11px] text-neutral-400">
-          <i className={`size-[7px] rounded-full ${up ? "bg-live" : "bg-alert"}`} />
-          {/* Em tela estreita só o essencial: o ponto já diz se está no ar. */}
-          <span className="hidden sm:inline">
-            {up ? `${segments.length} trechos · ${bytes(total)}` : `fora do ar${error ? ` — ${error}` : ""}`}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Cabeçalho só no celular: na tela larga essa informação vive no rail,
+            e repetir seria gastar altura que o vídeo quer. */}
+        <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
+          <span className="size-6 rounded-full bg-gradient-to-b from-motion to-alert" />
+          <span className="text-sm font-semibold">Vigia</span>
+          <span className="ml-auto flex items-center gap-1.5 text-[11px] text-neutral-400">
+            <i className={`size-[7px] rounded-full ${up ? "bg-live" : "bg-alert"}`} />
+            {up ? bytes(total) : "fora do ar"}
           </span>
-          <span className="sm:hidden">{up ? bytes(total) : "fora do ar"}</span>
-          <button
-            onClick={logout}
-            title={`Sair (${session.user})`}
-            className="ml-1 rounded px-1.5 py-0.5 text-neutral-500 transition hover:bg-trough hover:text-neutral-200"
-          >
-            Sair
-          </button>
-        </div>
-      </header>
+          <button onClick={logout} className="text-[11px] text-neutral-500">Sair</button>
+        </header>
 
-      <main className="p-3">
-        {tab === "live" && <LiveView active lastMotion={lastMotion} />}
-        {tab === "rec" && (
-          <RecordingsView days={days} events={events} day={day} onPickDay={(d) => setDayAt(d.date)} />
-        )}
-        {tab === "disk" && <StoragePanel />}
-      </main>
+        <main
+          className={`min-h-0 flex-1 p-3 pb-[calc(0.75rem+3.5rem)] md:pb-3 ${
+            tab === "live" || tab === "rec"
+              ? "overflow-hidden max-md:overflow-y-auto"
+              : "overflow-y-auto"
+          }`}
+        >
+          {tab === "live" && <LiveView active lastMotion={lastMotion} />}
+          {tab === "rec" && (
+            <RecordingsView days={days} events={events} day={day} onPickDay={(d) => setDayAt(d.date)} />
+          )}
+          {tab === "disk" && <StoragePanel />}
+          {tab === "settings" && <Settings me={session.user} />}
+        </main>
+      </div>
     </div>
   );
 }

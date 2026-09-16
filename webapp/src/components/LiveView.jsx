@@ -7,7 +7,11 @@ export default function LiveView({ active, lastMotion }) {
   const minutes = lastMotion ? Math.round((Date.now() - lastMotion) / 60000) : null;
 
   return (
-    <div className="relative mx-auto aspect-video w-full max-w-[1400px] overflow-hidden rounded-lg border border-white/10 bg-black">
+    // `h-full` com proporção fixa e `max-w-full`: quando a altura é o limite,
+    // o quadro encolhe pela altura e a largura acompanha — sem tarja preta, que
+    // é o que aparece quando só a largura manda.
+    <div className="grid size-full min-h-0 place-items-center [container-type:size]">
+      <div className="relative w-full max-w-full aspect-video overflow-hidden rounded-lg border border-white/10 bg-black md:w-[min(100cqw,calc(100cqh*16/9))] aspect-video">
       <video ref={ref} playsInline muted autoPlay className="size-full object-contain" />
 
       {unsupported && (
@@ -16,20 +20,23 @@ export default function LiveView({ active, lastMotion }) {
         </p>
       )}
 
-      {/* Gradiente em vez de barra opaca: escurece o topo o suficiente para o
-          texto se ler sobre qualquer cena, sem cortar um retângulo na imagem. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/65 to-transparent px-3 py-2">
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide">
-          {/* A pulsação carrega informação: um ponto parado não distingue
-              imagem ao vivo de imagem congelada. */}
-          <i className="size-[7px] animate-pulse rounded-full bg-alert" />
-          AO VIVO
+      {/* Selos flutuando sobre a cena, em vez de uma faixa atravessando a
+          imagem: ocupam só o que precisam e deixam o resto do quadro livre. */}
+      <span className="glass pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide text-white">
+        {/* A pulsação carrega informação: um ponto parado não distingue imagem
+            ao vivo de imagem congelada. */}
+        <i className="size-[7px] animate-pulse rounded-full bg-alert shadow-[0_0_6px_var(--color-alert)]" />
+        AO VIVO
+      </span>
+
+      {/* Embaixo à direita de propósito: a câmera grava o próprio horário no
+          canto de cima, e os dois se sobrepunham. */}
+      {minutes !== null && (
+        <span className="glass pointer-events-none absolute bottom-2.5 right-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-white">
+          <i className="size-[6px] rounded-full bg-motion shadow-[0_0_6px_var(--color-motion)]" />
+          {minutes < 1 ? "Movimento agora" : `Movimento há ${durationLabel(minutes * 60)}`}
         </span>
-        {minutes !== null && (
-          <span className="ml-auto text-[10px] text-motion">
-            {minutes < 1 ? "Movimento agora" : `Movimento há ${durationLabel(minutes * 60)}`}
-          </span>
-        )}
+      )}
       </div>
     </div>
   );

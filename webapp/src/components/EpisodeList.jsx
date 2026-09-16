@@ -9,7 +9,7 @@ export default function EpisodeList({ episodes, onPick }) {
   const ordered = [...episodes].sort((a, b) => b.start - a.start);
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xl border border-white/10 bg-surface max-lg:max-h-[60vh]">
+    <section className="flex h-full min-h-0 flex-col rounded-xl border border-white/10 bg-surface max-lg:max-h-[40vh]">
       <header className="flex items-baseline gap-2 border-b border-white/10 px-3.5 py-2.5">
         <h2 className="text-[13px] font-semibold">Detecções</h2>
         <span className="text-[10px] tabular-nums text-neutral-500">
