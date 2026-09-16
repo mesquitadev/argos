@@ -4,8 +4,7 @@
 set -u
 DELAY=1
 while true; do
-    DAY=$(date +%Y-%m-%d)
-    mkdir -p "/recordings/${CAMERA_ID}/${DAY}"
+    mkdir -p "/recordings/${CAMERA_ID}"
 
     # -c copy: a câmera já entrega H.264 pronto. Recodificar gastaria CPU o dia
     # inteiro para produzir imagem pior do que a que chegou.
@@ -19,12 +18,16 @@ while true; do
     # isso as gravações abrem em tudo menos no app que as exibe. Em troca,
     # perde-se o segmento em escrita numa queda de energia — por isso os
     # segmentos caíram para 5 minutos, que é o tamanho do prejuízo possível.
-    ffmpeg -hide_banner -loglevel warning \
+    # A data entra no caminho, não numa variável: calculada em shell ela seria
+# resolvida uma única vez, e este ffmpeg roda por dias — todas as gravações
+# acabavam na pasta do dia em que o container subiu. `-strftime_mkdir` deixa o
+# próprio ffmpeg criar a pasta de cada dia ao virar a meia-noite.
+ffmpeg -hide_banner -loglevel warning \
         -rtsp_transport tcp -timeout 10000000 \
         -i "$RTSP_URL" \
         -c copy -tag:v hvc1 -f segment -segment_time "$SEGMENT_SECONDS" \
-        -reset_timestamps 1 -strftime 1 \
-        "/recordings/${CAMERA_ID}/${DAY}/${CAMERA_ID}_%Y-%m-%d_%H-%M-%S.mp4"
+        -reset_timestamps 1 -strftime 1 -strftime_mkdir 1 \
+        "/recordings/${CAMERA_ID}/%Y-%m-%d/${CAMERA_ID}_%Y-%m-%d_%H-%M-%S.mp4"
 
     echo "[vigia] captura encerrou; nova tentativa em ${DELAY}s"
     sleep "$DELAY"
