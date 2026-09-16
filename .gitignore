@@ -10,3 +10,7 @@ deploy/.env
 # Saída de build do Java: nunca deve ser versionada.
 server/target/
 *.class
+
+# Aplicação web: dependências e saída de build.
+webapp/node_modules/
+webapp/dist/

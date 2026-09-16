@@ -1,0 +1,10 @@
+{
+  "name": "Vigia",
+  "short_name": "Vigia",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#16181c",
+  "theme_color": "#16181c",
+  "icons": [{ "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }]
+}
