@@ -122,5 +122,21 @@ services:
       WEB_PORT: "8088"
       CAMERA_ID: cam1
 
+  api:
+    container_name: vigia-api
+    build: ./api
+    restart: unless-stopped
+    volumes:
+      - ./api-config:/config
+      - /srv/vigia:/recordings:ro
+      - ./exports:/exports
+    environment:
+      TZ: America/Fortaleza
+      CAMERA_ID: cam1
+      PORT: "8090"
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET}
+
 volumes:
   hls-data:
