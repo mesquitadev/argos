@@ -5,13 +5,23 @@ import { DAY_SECONDS, SEGMENT_SECONDS, durationLabel, hhmm, positionOf, sameDay,
  *  É o controle, não um enfeite: tem um cursor que anda com o vídeo, e clicar
  *  num horário salta para aquele segundo. Sem isso seriam dois controles
  *  falando do mesmo instante sem se falarem — a barra do player e esta faixa. */
-export default function Timeline({ day, episodes, current, playhead, onSeek }) {
+export default function Timeline({ day, episodes, current, playhead, onSeek, selecao, onSelecionar }) {
   const isToday = sameDay(day.date, new Date());
 
-  const handle = (event) => {
+  const instanteEm = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const frac = (event.clientX - rect.left) / rect.width;
-    onSeek(new Date(+startOfDay(day.date) + frac * DAY_SECONDS * 1000));
+    return new Date(+startOfDay(day.date) + frac * DAY_SECONDS * 1000);
+  };
+
+  const handle = (event) => {
+    // Arrastar com Shift marca um intervalo para exportar; clique simples
+    // continua sendo navegar, que é o uso de longe mais comum.
+    if (event.shiftKey && onSelecionar) {
+      onSelecionar(instanteEm(event));
+      return;
+    }
+    onSeek(instanteEm(event));
   };
 
   return (

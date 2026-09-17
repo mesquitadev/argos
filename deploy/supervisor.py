@@ -18,6 +18,7 @@ import signal
 import subprocess
 import sys
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
@@ -29,6 +30,7 @@ INTERVALO = 5
 
 processos: dict[str, subprocess.Popen] = {}
 assinaturas: dict[str, str] = {}
+falhas: dict[str, int] = {}
 parando = False
 
 
@@ -46,9 +48,23 @@ def rtsp_url(camera: dict) -> str:
     return f"rtsp://{credencial}{camera['host']}:{camera.get('rtsp_port', 554)}{caminho}"
 
 
+def garantir_pastas(ident: str) -> None:
+    """Cria a pasta de hoje e a de amanhã.
+
+    O ffmpeg 8 aceita `-strftime_mkdir` e o ignora em silêncio — ele não existe
+    nesta build. A gravação morreu à meia-noite, quando a pasta nova foi
+    necessária pela primeira vez, e o único sinal foi um código de saída 254.
+    Criar aqui não depende de opção de muxer nenhuma; criar a de amanhã cobre a
+    virada sem esperar a próxima volta do laço.
+    """
+    hoje = datetime.now()
+    for dia in (hoje, hoje + timedelta(days=1)):
+        (GRAVACOES / ident / dia.strftime("%Y-%m-%d")).mkdir(parents=True, exist_ok=True)
+
+
 def comando_gravacao(camera: dict) -> list[str]:
     ident = camera["id"]
-    (GRAVACOES / ident).mkdir(parents=True, exist_ok=True)
+    garantir_pastas(ident)
     return [
         "ffmpeg", "-hide_banner", "-loglevel", "warning",
         "-rtsp_transport", "tcp", "-timeout", "10000000",
@@ -59,7 +75,7 @@ def comando_gravacao(camera: dict) -> list[str]:
         # A Apple recusa HEVC marcado `hev1`; sem isto o vídeo abre e não toca.
         "-tag:v", "hvc1",
         "-f", "segment", "-segment_time", SEGMENTO,
-        "-reset_timestamps", "1", "-strftime", "1", "-strftime_mkdir", "1",
+        "-reset_timestamps", "1", "-strftime", "1",
         f"{GRAVACOES}/{ident}/%Y-%m-%d/{ident}_%Y-%m-%d_%H-%M-%S.mp4",
     ]
 
@@ -138,6 +154,10 @@ def sincronizar() -> None:
     for camera in cameras:
         ident = camera["id"]
         marca = assinatura(camera)
+        # A cada volta: à meia-noite a pasta muda com o ffmpeg já rodando, e
+        # esperar ele cair para criá-la custaria os segundos entre a virada e
+        # a primeira falha.
+        garantir_pastas(ident)
 
         for papel, montar in (("rec", comando_gravacao), ("hls", comando_hls)):
             chave = f"{ident}:{papel}"
@@ -153,11 +173,23 @@ def sincronizar() -> None:
             if proc and proc.poll() is None:
                 continue
             if proc:
-                log(f"caiu (código {proc.returncode}): {chave}")
+                log(f"caiu (código {proc.returncode}): {chave} — veja o erro do ffmpeg acima")
                 processos.pop(chave, None)
+                # Espera crescente: reabrir em rajada contra uma câmera que
+                # recusa conexão só enche o log e atrasa a volta.
+                falhas[chave] = falhas.get(chave, 0) + 1
+                espera = min(60, 2 ** min(falhas[chave], 6))
+                if falhas[chave] > 1:
+                    log(f"aguardando {espera}s antes de tentar de novo: {chave}")
+                    time.sleep(espera)
+            else:
+                falhas.pop(chave, None)
 
+            # O erro do ffmpeg vai para o log do container, não para o vazio.
+            # Silenciá-lo deixou a gravação parada dezesseis horas sem que
+            # nada explicasse por quê — o log existe exatamente para isso.
             processos[chave] = subprocess.Popen(
-                montar(camera), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                montar(camera), stdout=subprocess.DEVNULL, stderr=None)
             assinaturas[chave] = marca
             log(f"iniciado: {chave} ({camera.get('name', ident)})")
 

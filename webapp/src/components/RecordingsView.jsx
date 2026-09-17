@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import DayRail from "./DayRail";
+import Export from "./Export";
 import EpisodeList from "./EpisodeList";
 import Timeline from "./Timeline";
 import { defaultSegment, episodes as episodesOf, hhmmss, locate, rotularEpisodios } from "../lib/vigia";
@@ -9,6 +10,11 @@ export default function RecordingsView({ days, events, detections, day, cameras,
   const [current, setCurrent] = useState(null);
   const [playhead, setPlayhead] = useState(null);
   const pending = useRef(0);
+  // Marcação em dois cliques: o primeiro fixa o início, o segundo o fim. Um
+  // arraste seria mais elegante, mas quebra no toque, e o celular é onde mais
+  // se pede um trecho.
+  const [selecao, setSelecao] = useState(null);
+  const [exportando, setExportando] = useState(false);
 
   const eps = day ? rotularEpisodios(episodesOf(events, day.date), detections || []) : [];
 
@@ -57,6 +63,17 @@ export default function RecordingsView({ days, events, detections, day, cameras,
     if (!next) return;
     pending.current = 0;
     setCurrent(next);
+  };
+
+  /** Marca início e fim do que vai ser exportado. */
+  const marcar = (instante) => {
+    setSelecao((atual) => {
+      if (!atual?.inicio || atual.fim) return { inicio: instante, fim: null };
+      // Marcar para trás é legítimo: quem viu o fim primeiro marca de trás
+      // para a frente, e trocar a ordem aqui evita um erro sem sentido.
+      const [inicio, fim] = [atual.inicio, instante].sort((a, b) => a - b);
+      return { inicio, fim };
+    });
   };
 
   const tick = () => {
@@ -132,8 +149,30 @@ export default function RecordingsView({ days, events, detections, day, cameras,
             <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-motion align-[-1px]" />Movimento</span>
             <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-rec/70 align-[-1px]" />Gravado</span>
             <span className="hidden sm:inline"><i className="mr-1 inline-block size-2.5 rounded-sm bg-live align-[-1px]" />Agora</span>
-            <span className="ml-auto font-medium tabular-nums text-white">
-              {playhead ? hhmmss(playhead) : ""}
+            <span className="ml-auto flex items-center gap-2">
+              {selecao?.inicio && selecao?.fim ? (
+                <>
+                  <span className="text-live">
+                    {hhmmss(selecao.inicio)} → {hhmmss(selecao.fim)}
+                  </span>
+                  <button
+                    onClick={() => setExportando(true)}
+                    className="rounded bg-live px-2 py-0.5 text-[10px] font-medium text-black"
+                  >
+                    Exportar
+                  </button>
+                  <button onClick={() => setSelecao(null)} className="text-neutral-500">
+                    limpar
+                  </button>
+                </>
+              ) : (
+                <span className="text-neutral-600">
+                  {selecao?.inicio ? "shift+clique no fim do trecho" : "shift+clique marca um trecho"}
+                </span>
+              )}
+              <span className="font-medium tabular-nums text-white">
+                {playhead ? hhmmss(playhead) : ""}
+              </span>
             </span>
           </div>
         </div>
@@ -144,6 +183,14 @@ export default function RecordingsView({ days, events, detections, day, cameras,
       <div className="min-h-0 lg:h-full">
         <EpisodeList episodes={eps} onPick={seek} />
       </div>
+
+      {exportando && selecao?.inicio && selecao?.fim && (
+        <Export
+          inicio={selecao.inicio}
+          fim={selecao.fim}
+          onFechar={() => setExportando(false)}
+        />
+      )}
     </div>
   );
 }
