@@ -53,9 +53,11 @@ services:
     container_name: vigia-events
     command: ["python", "-u", "/config/events.py"]
     volumes:
+      - ./api-config:/config-cameras:ro
       - ./events.py:/config/events.py:ro
       - hls-data:/hls
     environment:
+      CAMERAS_FILE: /config-cameras/cameras.json
       TZ: America/Fortaleza
       CAMERA_ID: ${CAMERA_ID:-cam1}
       CAMERA_HOST: ${CAMERA_HOST:?defina CAMERA_HOST no .env}
