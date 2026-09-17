@@ -4,7 +4,7 @@ import EpisodeList from "./EpisodeList";
 import Timeline from "./Timeline";
 import { defaultSegment, episodes as episodesOf, hhmmss, locate } from "../lib/vigia";
 
-export default function RecordingsView({ days, events, day, onPickDay }) {
+export default function RecordingsView({ days, events, day, cameras, camera, onPickCamera, onPickDay }) {
   const video = useRef(null);
   const [current, setCurrent] = useState(null);
   const [playhead, setPlayhead] = useState(null);
@@ -67,7 +67,7 @@ export default function RecordingsView({ days, events, day, onPickDay }) {
   if (!day) {
     return (
       <p className="rounded-xl border border-white/10 bg-surface p-8 text-center text-sm text-neutral-400">
-        Nenhuma gravação ainda.
+        {camera ? `Nenhuma gravação de ${camera.name} ainda.` : "Nenhuma câmera adotada."}
       </p>
     );
   }
@@ -102,6 +102,25 @@ export default function RecordingsView({ days, events, day, onPickDay }) {
         </div>
 
         <div className="shrink-0 rounded-xl border border-white/10 bg-surface p-3">
+          {/* Seletor de câmera antes do dia: escolher o dia de outra câmera
+              seria escolher duas vezes. */}
+          {cameras?.length > 1 && (
+            <div className="mb-2 flex gap-1 overflow-x-auto pb-1">
+              {cameras.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => onPickCamera(c.id)}
+                  className={`shrink-0 rounded-md px-2.5 py-1 text-[11px] transition ${
+                    c.id === camera?.id
+                      ? "bg-rec/20 text-white ring-1 ring-rec/70"
+                      : "bg-trough/60 text-neutral-400 hover:bg-trough"
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
           <DayRail
             days={days}
             active={day}

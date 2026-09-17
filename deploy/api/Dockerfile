@@ -10,7 +10,7 @@ FROM python:3.12-alpine
 RUN apk add --no-cache ffmpeg tzdata
 
 WORKDIR /api
-COPY auth.py server.py manage.py retention.py /api/
+COPY auth.py server.py manage.py retention.py cameras.py /api/
 
 # Sem escrever .pyc numa pasta montada como somente leitura, e com a saída sem
 # buffer para o log aparecer na hora.

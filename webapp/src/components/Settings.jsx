@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
+import Cameras from "./Cameras";
 import RetentionSettings from "./RetentionSettings";
 import Users from "./Users";
 
 const TABS = [
+  { id: "cameras", label: "Câmeras" },
   { id: "retencao", label: "Retenção" },
   { id: "usuarios", label: "Usuários" },
   { id: "sistema", label: "Sistema" },
 ];
 
 export default function Settings({ me }) {
-  const [tab, setTab] = useState("retencao");
+  const [tab, setTab] = useState("cameras");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4 pb-4">
       <nav className="flex gap-1 rounded-lg bg-trough p-0.5">
         {TABS.map((t) => (
           <button
@@ -27,6 +29,7 @@ export default function Settings({ me }) {
         ))}
       </nav>
 
+      {tab === "cameras" && <Cameras />}
       {tab === "retencao" && <RetentionSettings />}
       {tab === "usuarios" && <Users me={me} />}
       {tab === "sistema" && <System />}

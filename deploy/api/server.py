@@ -22,6 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import auth
+import cameras
 import retention
 
 RECORDINGS = Path(os.environ.get("RECORDINGS_DIR", "/recordings"))
@@ -29,6 +30,7 @@ EXPORTS = Path(os.environ.get("EXPORTS_DIR", "/exports"))
 CAMERA = os.environ.get("CAMERA_ID", "cam1")
 SEGMENT_SECONDS = int(os.environ.get("SEGMENT_SECONDS", "300"))
 USERS_FILE = Path(os.environ.get("USERS_FILE", "/config/users.json"))
+EVENTS_DIR = Path(os.environ.get("EVENTS_DIR", "/hls"))
 
 NAME_RE = re.compile(r"^(.+)_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})\.mp4$")
 
@@ -83,9 +85,17 @@ def started_at(path: Path) -> datetime | None:
         return None
 
 
-def all_segments() -> list[tuple[Path, datetime, int]]:
+def all_segments(camera: str | None = None) -> list[tuple[Path, datetime, int]]:
+    """Os trechos gravados, opcionalmente de uma câmera só.
+
+    Lê o disco em vez de um índice mantido à parte: o disco é a verdade, e um
+    índice desatualizado mostraria gravação que a retenção já apagou.
+    """
+    raiz = RECORDINGS / camera if camera else RECORDINGS
     out = []
-    for path in RECORDINGS.rglob("*.mp4"):
+    if not raiz.exists():
+        return out
+    for path in raiz.rglob("*.mp4"):
         at = started_at(path)
         if at:
             try:
@@ -255,7 +265,9 @@ class Handler(BaseHTTPRequestHandler):
     # -- rotas --
 
     def do_GET(self):
-        path = urllib.parse.urlparse(self.path).path
+        partes = urllib.parse.urlparse(self.path)
+        path = partes.path
+        query = urllib.parse.parse_qs(partes.query)
 
         # O nginx pergunta aqui antes de servir qualquer coisa protegida.
         if path == "/api/auth":
@@ -294,6 +306,49 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/system":
             self.send_json(system_report())
+            return
+
+        if path == "/api/cameras":
+            self.send_json([cameras.publica(c) for c in cameras.carregar()])
+            return
+
+        if path == "/api/recordings":
+            camera = query.get("camera", [None])[0]
+            segmentos = [
+                {
+                    "path": str(p.relative_to(RECORDINGS)),
+                    "started": p.stem.split("_", 1)[1] if "_" in p.stem else p.stem,
+                    "bytes": size,
+                }
+                for p, _, size in all_segments(camera)
+            ]
+            self.send_json({"camera": camera, "segments": segmentos})
+            return
+
+        if path == "/api/events":
+            camera = query.get("camera", [None])[0]
+            # Cada câmera tem seu arquivo; sem câmera, junta todos — que é o
+            # que a tela de eventos gerais vai querer.
+            arquivos = ([EVENTS_DIR / camera / "events.jsonl"] if camera
+                        else sorted(EVENTS_DIR.glob("*/events.jsonl")))
+            linhas = []
+            for arquivo in arquivos:
+                if arquivo.exists():
+                    linhas += arquivo.read_text(errors="ignore").splitlines()[-4000:]
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write("\n".join(linhas).encode())
+            return
+
+        if path == "/api/cameras/descobrir":
+            # Multicast leva alguns segundos: o padrão manda esperar as
+            # respostas chegarem, não perguntar e desistir.
+            try:
+                self.send_json(cameras.descobrir())
+            except RuntimeError as err:
+                self.send_json({"error": str(err)}, 503)
             return
 
         m = re.match(r"^/api/export/([0-9a-f-]+)$", path)
@@ -365,6 +420,47 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "confirmação ausente"}, 400)
                 return
             self.send_json(retention.purge())
+            return
+
+        if path in {"/api/cameras", "/api/cameras/delete"}:
+            if self.session().get("r") != "admin":
+                self.send_json({"error": "apenas administradores"}, 403)
+                return
+
+            registro = cameras.carregar()
+            dados = self.body_json()
+
+            if path == "/api/cameras/delete":
+                ident = dados.get("id")
+                if not any(c["id"] == ident for c in registro):
+                    self.send_json({"error": "câmera não encontrada"}, 404)
+                    return
+                # As gravações ficam: remover a câmera do registro é parar de
+                # gravar, não apagar o histórico dela. Quem apaga é a retenção
+                # ou o expurgo, com confirmação.
+                cameras.salvar([c for c in registro if c["id"] != ident])
+                self.send_json({"ok": True, "gravacoes_mantidas": True})
+                return
+
+            criando = not any(c["id"] == (dados.get("id") or "").lower() for c in registro)
+            try:
+                camera = cameras.validar(dados, registro, criando)
+            except (ValueError, TypeError) as err:
+                self.send_json({"error": str(err)}, 400)
+                return
+
+            if criando:
+                registro.append(camera)
+            else:
+                # Senha em branco na edição significa "não mexer", em vez de
+                # apagar a que já existe sem querer.
+                antiga = next(c for c in registro if c["id"] == camera["id"])
+                if not camera["password"]:
+                    camera["password"] = antiga.get("password", "")
+                registro = [camera if c["id"] == camera["id"] else c for c in registro]
+
+            cameras.salvar(registro)
+            self.send_json(cameras.publica(camera))
             return
 
         if path in {"/api/users", "/api/users/delete"}:

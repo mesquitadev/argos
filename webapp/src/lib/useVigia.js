@@ -1,8 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { byDay, startedAt } from "./vigia";
 
-/** Busca e mantém vivos o índice de gravações e os eventos da câmera. */
-export function useVigia() {
+/** As câmeras registradas. */
+export function useCameras() {
+  const [cameras, setCameras] = useState([]);
+  useEffect(() => {
+    const load = () =>
+      fetch("/api/cameras", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((lista) => setCameras(lista.filter((c) => c.enabled)))
+        .catch(() => {});
+    load();
+    // Adotar uma câmera noutra aba deve refletir aqui sem recarregar a página.
+    const timer = setInterval(load, 30000);
+    return () => clearInterval(timer);
+  }, []);
+  return cameras;
+}
+
+/** Busca e mantém vivos o índice de gravações e os eventos de uma câmera. */
+export function useVigia(cameraId) {
   const [segments, setSegments] = useState([]);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
@@ -10,12 +27,15 @@ export function useVigia() {
 
   const load = useCallback(async () => {
     try {
+      // A API lê o disco a cada chamada: o disco é a verdade, e um índice
+      // mantido à parte mostraria gravação que a retenção já apagou.
+      const sufixo = cameraId ? `?camera=${encodeURIComponent(cameraId)}` : "";
       const [index, raw] = await Promise.all([
-        fetch("/live/index.json", { cache: "no-store" }).then((r) => {
+        fetch(`/api/recordings${sufixo}`, { cache: "no-store" }).then((r) => {
           if (!r.ok) throw new Error(`índice ${r.status}`);
           return r.json();
         }),
-        fetch("/live/events.jsonl", { cache: "no-store" })
+        fetch(`/api/events${sufixo}`, { cache: "no-store" })
           .then((r) => (r.ok ? r.text() : ""))
           .catch(() => ""),
       ]);
@@ -48,7 +68,7 @@ export function useVigia() {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [cameraId]);
 
   useEffect(() => {
     load();

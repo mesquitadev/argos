@@ -5,7 +5,8 @@ import Nav from "./components/Nav";
 import RecordingsView from "./components/RecordingsView";
 import Settings from "./components/Settings";
 import StoragePanel from "./components/StoragePanel";
-import { useVigia } from "./lib/useVigia";
+import Wall from "./components/Wall";
+import { useCameras, useVigia } from "./lib/useVigia";
 import { bytes, defaultDay, sameDay } from "./lib/vigia";
 
 export default function App() {
@@ -26,7 +27,14 @@ export default function App() {
 }
 
 function Shell({ session, onLogout }) {
-  const { segments, events, days, error, loaded } = useVigia();
+  const cameras = useCameras();
+  // A câmera em foco. Sem escolha explícita, a primeira — e o mosaico só
+  // aparece quando há mais de uma, porque grade de um quadro é só um quadro
+  // com borda.
+  const [focada, setFocada] = useState(null);
+  const camera = cameras.find((c) => c.id === focada) || cameras[0] || null;
+
+  const { segments, events, days, error, loaded } = useVigia(camera?.id);
   const [tab, setTab] = useState("live");
   const [dayAt, setDayAt] = useState(null);
 
@@ -90,9 +98,28 @@ function Shell({ session, onLogout }) {
               : "overflow-y-auto"
           }`}
         >
-          {tab === "live" && <LiveView active lastMotion={lastMotion} />}
+          {tab === "live" &&
+            (cameras.length > 1 && !focada ? (
+              <Wall cameras={cameras} onFocar={(c) => setFocada(c.id)} />
+            ) : (
+              <LiveView
+                active
+                camera={camera}
+                lastMotion={lastMotion}
+                podeVoltar={cameras.length > 1}
+                onVoltar={() => setFocada(null)}
+              />
+            ))}
           {tab === "rec" && (
-            <RecordingsView days={days} events={events} day={day} onPickDay={(d) => setDayAt(d.date)} />
+            <RecordingsView
+              days={days}
+              events={events}
+              day={day}
+              cameras={cameras}
+              camera={camera}
+              onPickCamera={(id) => { setFocada(id); setDayAt(null); }}
+              onPickDay={(d) => setDayAt(d.date)}
+            />
           )}
           {tab === "disk" && <StoragePanel />}
           {tab === "settings" && <Settings me={session.user} />}

@@ -1,26 +1,5 @@
 # Gravador da câmera. Roda no servidor, 24 horas por dia, independente do Mac.
 services:
-  recorder:
-    image: linuxserver/ffmpeg:latest
-    container_name: vigia-recorder
-    # `entrypoint` porque a imagem já aponta para o ffmpeg; aqui trocamos por um
-    # laço que reinicia a captura quando a câmera cai, sem derrubar o container.
-    entrypoint: ["/bin/sh", "/config/record.sh"]
-    volumes:
-      - ./record.sh:/config/record.sh:ro
-      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
-    environment:
-      TZ: America/Fortaleza
-      CAMERA_ID: ${CAMERA_ID:-cam1}
-      RTSP_URL: ${RTSP_URL:?defina RTSP_URL no .env}
-      SEGMENT_SECONDS: ${SEGMENT_SECONDS:-600}
-    restart: unless-stopped
-    # Sem limite de memória o ffmpeg pode crescer com buffers em rede instável.
-    mem_limit: 512m
-    logging:
-      driver: json-file
-      options: { max-size: "10m", max-file: "3" }
-
   retention:
     image: alpine:3.20
     container_name: vigia-retention
@@ -40,24 +19,6 @@ services:
     mem_limit: 64m
 
   # Converte o fluxo em HLS para o app reproduzir nativamente, sem VLCKit.
-  hls:
-    image: linuxserver/ffmpeg:latest
-    container_name: vigia-hls
-    entrypoint: ["/bin/sh", "/config/hls.sh"]
-    volumes:
-      - ./hls.sh:/config/hls.sh:ro
-      - hls-data:/hls
-    environment:
-      TZ: America/Fortaleza
-      CAMERA_ID: ${CAMERA_ID:-cam1}
-      RTSP_URL: ${RTSP_URL:?defina RTSP_URL no .env}
-    restart: unless-stopped
-    mem_limit: 256m
-    logging:
-      driver: json-file
-      options: { max-size: "5m", max-file: "2" }
-
-  # Mantém o índice das gravações em dia.
   indexer:
     image: alpine:3.20
     container_name: vigia-indexer
@@ -76,13 +37,12 @@ services:
   web:
     image: nginx:alpine
     container_name: vigia-web
+    network_mode: host
     volumes:
       - ./web:/web:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - hls-data:/hls:ro
       - ${RECORDINGS_PATH:-/srv/vigia}:/recordings:ro
-    ports:
-      - "${WEB_PORT:-8088}:8080"
     restart: unless-stopped
     mem_limit: 64m
 
@@ -126,8 +86,10 @@ services:
   api:
     container_name: vigia-api
     build: ./api
+    network_mode: host
     restart: unless-stopped
     volumes:
+      - hls-data:/hls:ro
       - ./api-config:/config
       - /srv/vigia:/recordings:ro
       - ./exports:/exports
@@ -138,6 +100,22 @@ services:
       ADMIN_USER: ${ADMIN_USER}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       SESSION_SECRET: ${SESSION_SECRET}
+
+  supervisor:
+    container_name: vigia-supervisor
+    # Mesma imagem da API: precisa de Python e ffmpeg, exatamente como ela.
+    build: ./api
+    restart: unless-stopped
+    command: ["python3", "/config/supervisor.py"]
+    volumes:
+      - ./supervisor.py:/config/supervisor.py:ro
+      - ./api-config:/config-cameras:ro
+      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
+      - hls-data:/hls
+    environment:
+      TZ: America/Fortaleza
+      CAMERAS_FILE: /config-cameras/cameras.json
+      SEGMENT_SECONDS: ${SEGMENT_SECONDS:-300}
 
 volumes:
   hls-data:

@@ -2,8 +2,11 @@ import { durationLabel } from "../lib/vigia";
 import { useHls } from "../lib/useVigia";
 
 /** O fluxo ao vivo, sem controles de reprodução — não há começo nem fim. */
-export default function LiveView({ active, lastMotion }) {
-  const { ref, unsupported } = useHls("/live/cam1.m3u8", active);
+export default function LiveView({ active, camera, lastMotion, podeVoltar, onVoltar }) {
+  const { ref, unsupported } = useHls(
+    camera ? `/live/${camera.id}/${camera.id}.m3u8` : null,
+    active && !!camera,
+  );
   const minutes = lastMotion ? Math.round((Date.now() - lastMotion) / 60000) : null;
 
   return (
@@ -27,7 +30,17 @@ export default function LiveView({ active, lastMotion }) {
             ao vivo de imagem congelada. */}
         <i className="size-[7px] animate-pulse rounded-full bg-alert shadow-[0_0_6px_var(--color-alert)]" />
         AO VIVO
+        {camera && <span className="font-medium normal-case tracking-normal">{camera.name}</span>}
       </span>
+
+      {podeVoltar && (
+        <button
+          onClick={onVoltar}
+          className="glass absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-medium text-white transition hover:brightness-125"
+        >
+          Ver todas
+        </button>
+      )}
 
       {/* Embaixo à direita de propósito: a câmera grava o próprio horário no
           canto de cima, e os dois se sobrepunham. */}
