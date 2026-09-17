@@ -325,6 +325,23 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"camera": camera, "segments": segmentos})
             return
 
+        if path == "/api/detections":
+            camera = query.get("camera", [None])[0]
+            arquivos = ([EVENTS_DIR / camera / "detections.jsonl"] if camera
+                        else sorted(EVENTS_DIR.glob("*/detections.jsonl")))
+            linhas = []
+            for arquivo in arquivos:
+                if arquivo.exists():
+                    # Só o passado recente interessa à linha do tempo; ler o
+                    # arquivo inteiro cresceria sem limite com o tempo.
+                    linhas += arquivo.read_text(errors="ignore").splitlines()[-2000:]
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write("\n".join(linhas).encode())
+            return
+
         if path == "/api/events":
             camera = query.get("camera", [None])[0]
             # Cada câmera tem seu arquivo; sem câmera, junta todos — que é o

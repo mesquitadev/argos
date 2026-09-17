@@ -1,0 +1,21 @@
+# Detecção de objetos: YOLO11n sobre ONNX Runtime, em CPU.
+#
+# Imagem própria em vez de instalar no arranque: instalar a cada restart
+# depende da internet no pior momento, e o modelo precisa estar no disco para
+# o serviço subir mesmo offline.
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir onnxruntime opencv-python-headless numpy
+
+# O modelo entra na imagem, não num volume: assim a versão do código e a do
+# modelo andam juntas, e não há como subir uma com a outra desatualizada.
+ADD https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.onnx /modelo/yolo.onnx
+RUN chmod 644 /modelo/yolo.onnx
+
+COPY detector.py /app/detector.py
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+CMD ["python3", "/app/detector.py"]

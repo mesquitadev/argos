@@ -68,6 +68,22 @@ function periods(events, day) {
   return out.sort((a, b) => a.start - b.start);
 }
 
+/** Junta ao episódio o que o detector reconheceu naquele intervalo.
+ *
+ *  Um episódio pode ter várias detecções — um carro passando e uma pessoa
+ *  atrás. Guardamos o conjunto de rótulos, porque é o que o olho lê de
+ *  relance: "carro, pessoa" diz mais que duas linhas separadas. */
+export function rotularEpisodios(eps, detections) {
+  return eps.map((ep) => {
+    const dentro = detections.filter(
+      (d) => d.at >= new Date(+ep.start - 5000) && d.at <= new Date(+ep.end + 5000),
+    );
+    const rotulos = [...new Set(dentro.flatMap((d) => d.objetos.map((o) => o.o_que)))];
+    const confianca = Math.max(0, ...dentro.flatMap((d) => d.objetos.map((o) => o.confianca)));
+    return { ...ep, rotulos, confianca };
+  });
+}
+
 export function episodes(events, day) {
   const ps = periods(events, day);
   if (!ps.length) return [];

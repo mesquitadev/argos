@@ -22,6 +22,7 @@ export function useCameras() {
 export function useVigia(cameraId) {
   const [segments, setSegments] = useState([]);
   const [events, setEvents] = useState([]);
+  const [detections, setDetections] = useState([]);
   const [error, setError] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -30,12 +31,15 @@ export function useVigia(cameraId) {
       // A API lê o disco a cada chamada: o disco é a verdade, e um índice
       // mantido à parte mostraria gravação que a retenção já apagou.
       const sufixo = cameraId ? `?camera=${encodeURIComponent(cameraId)}` : "";
-      const [index, raw] = await Promise.all([
+      const [index, raw, brutoDet] = await Promise.all([
         fetch(`/api/recordings${sufixo}`, { cache: "no-store" }).then((r) => {
           if (!r.ok) throw new Error(`índice ${r.status}`);
           return r.json();
         }),
         fetch(`/api/events${sufixo}`, { cache: "no-store" })
+          .then((r) => (r.ok ? r.text() : ""))
+          .catch(() => ""),
+        fetch(`/api/detections${sufixo}`, { cache: "no-store" })
           .then((r) => (r.ok ? r.text() : ""))
           .catch(() => ""),
       ]);
@@ -62,6 +66,19 @@ export function useVigia(cameraId) {
           })
           .filter((e) => e && !Number.isNaN(+e.at)),
       );
+      // O que o detector reconheceu, indexado pelo instante do evento: é o que
+      // transforma "movimento" em "pessoa" ou "carro" na linha do tempo.
+      const porInstante = new Map();
+      for (const linha of brutoDet.split("\n")) {
+        try {
+          const d = JSON.parse(linha);
+          if (d?.at) porInstante.set(new Date(d.at).getTime(), d.objetos || []);
+        } catch {
+          // linha escrita pela metade no momento da leitura
+        }
+      }
+      setDetections([...porInstante.entries()].map(([at, objetos]) => ({ at: new Date(at), objetos })));
+
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -78,7 +95,7 @@ export function useVigia(cameraId) {
     return () => clearInterval(timer);
   }, [load]);
 
-  return { segments, events, days: byDay(segments), error, loaded, reload: load };
+  return { segments, events, detections, days: byDay(segments), error, loaded, reload: load };
 }
 
 /** Liga um fluxo HLS a um elemento de vídeo.

@@ -119,5 +119,23 @@ services:
       CAMERAS_FILE: /config-cameras/cameras.json
       SEGMENT_SECONDS: ${SEGMENT_SECONDS:-300}
 
+  detector:
+    container_name: vigia-detector
+    build:
+      context: .
+      dockerfile: Dockerfile.detector
+    restart: unless-stopped
+    volumes:
+      - ./api-config:/config-cameras:ro
+      - hls-data:/hls
+    environment:
+      TZ: America/Fortaleza
+      CAMERAS_FILE: /config-cameras/cameras.json
+      # Um núcleo: o resto da máquina está gravando, e detecção que atropela a
+      # gravação troca uma conveniência por uma função essencial.
+      THREADS: "1"
+      CONFIANCA: "0.35"
+    mem_limit: 768m
+
 volumes:
   hls-data:

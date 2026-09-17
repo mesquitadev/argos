@@ -2,15 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import DayRail from "./DayRail";
 import EpisodeList from "./EpisodeList";
 import Timeline from "./Timeline";
-import { defaultSegment, episodes as episodesOf, hhmmss, locate } from "../lib/vigia";
+import { defaultSegment, episodes as episodesOf, hhmmss, locate, rotularEpisodios } from "../lib/vigia";
 
-export default function RecordingsView({ days, events, day, cameras, camera, onPickCamera, onPickDay }) {
+export default function RecordingsView({ days, events, detections, day, cameras, camera, onPickCamera, onPickDay }) {
   const video = useRef(null);
   const [current, setCurrent] = useState(null);
   const [playhead, setPlayhead] = useState(null);
   const pending = useRef(0);
 
-  const eps = day ? episodesOf(events, day.date) : [];
+  const eps = day ? rotularEpisodios(episodesOf(events, day.date), detections || []) : [];
 
   // Ao trocar de dia, abre o trecho mais recente que se pode assistir.
   useEffect(() => {

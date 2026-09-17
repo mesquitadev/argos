@@ -1,5 +1,17 @@
 import { durationLabel, hhmmss } from "../lib/vigia";
 
+// Cada coisa com sua marca, para distinguir de relance sem ler o rótulo.
+const MARCAS = {
+  pessoa: { icone: "👤", cor: "bg-alert" },
+  carro: { icone: "🚗", cor: "bg-rec" },
+  caminhão: { icone: "🚚", cor: "bg-rec" },
+  ônibus: { icone: "🚌", cor: "bg-rec" },
+  moto: { icone: "🏍", cor: "bg-rec" },
+  bicicleta: { icone: "🚲", cor: "bg-rec" },
+  cachorro: { icone: "🐕", cor: "bg-live" },
+  gato: { icone: "🐈", cor: "bg-live" },
+};
+
 /** O que a câmera detectou, agrupado em episódios.
  *
  *  A lista crua repetia "Movimento" dezenas de vezes, porque a câmera publica
@@ -31,11 +43,22 @@ export default function EpisodeList({ episodes, onPick }) {
                 onClick={() => onPick(ep.start)}
                 className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left transition hover:bg-trough"
               >
-                {/* Barra de acento em vez de ícone repetido: dezenas de ícones
-                    iguais não informam nada. */}
-                <i className="h-7 w-[3px] shrink-0 rounded-sm bg-motion" />
+                {/* A barra ganha a cor do que foi reconhecido: pessoa em
+                    vermelho, veículo em azul, bicho em verde. Quando o
+                    detector não reconheceu nada, continua âmbar de
+                    "movimento" — que é a verdade, não uma suposição. */}
+                <i className={`h-7 w-[3px] shrink-0 rounded-sm ${
+                  MARCAS[ep.rotulos?.[0]]?.cor || "bg-motion"
+                }`} />
                 <span className="min-w-0">
-                  <b className="block text-xs font-medium tabular-nums">{hhmmss(ep.start)}</b>
+                  <b className="flex items-center gap-1.5 text-xs font-medium tabular-nums">
+                    {hhmmss(ep.start)}
+                    {ep.rotulos?.length > 0 && (
+                      <span className="rounded bg-trough px-1.5 py-0.5 text-[10px] font-normal">
+                        {ep.rotulos.map((r) => `${MARCAS[r]?.icone || ""} ${r}`).join(" · ")}
+                      </span>
+                    )}
+                  </b>
                   <span className="block text-[10px] text-neutral-500">
                     {durationLabel((ep.end - ep.start) / 1000)}
                     {ep.count > 1 && ` · ${ep.count} disparos`}

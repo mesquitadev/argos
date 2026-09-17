@@ -34,7 +34,7 @@ function Shell({ session, onLogout }) {
   const [focada, setFocada] = useState(null);
   const camera = cameras.find((c) => c.id === focada) || cameras[0] || null;
 
-  const { segments, events, days, error, loaded } = useVigia(camera?.id);
+  const { segments, events, detections, days, error, loaded } = useVigia(camera?.id);
   const [tab, setTab] = useState("live");
   const [dayAt, setDayAt] = useState(null);
 
@@ -114,6 +114,7 @@ function Shell({ session, onLogout }) {
             <RecordingsView
               days={days}
               events={events}
+              detections={detections}
               day={day}
               cameras={cameras}
               camera={camera}
