@@ -6,7 +6,7 @@ import Foundation
 /// firewall é quem decide quem chega até lá. Colocar login aqui daria a
 /// impressão de proteção sem acrescentar nenhuma — quem alcança a porta já está
 /// dentro da rede.
-struct VigiaServer: Sendable {
+struct ArgosServer: Sendable {
     enum ServerError: LocalizedError {
         case unreachable(String)
         case badResponse
@@ -70,7 +70,7 @@ struct VigiaServer: Sendable {
     /// sistema — três problemas com soluções diferentes.
     static func log(_ message: String) {
         let line = "\(Date().formatted(date: .omitted, time: .standard)) \(message)\n"
-        let url = URL(filePath: NSTemporaryDirectory()).appending(path: "vigia-debug.log")
+        let url = URL(filePath: NSTemporaryDirectory()).appending(path: "argos-debug.log")
         if let handle = try? FileHandle(forWritingTo: url) {
             handle.seekToEndOfFile()
             handle.write(Data(line.utf8))

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { bytes } from "../lib/vigia";
+import { bytes } from "../lib/argos";
 
 const FIELDS = [
   { key: "MAX_DAYS", label: "Guardar por", unit: "dias", hint: "Gravação mais velha que isto é apagada." },

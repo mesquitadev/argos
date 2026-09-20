@@ -29,7 +29,7 @@ final class Discovery {
     private var resolvers: [String: NWConnection] = [:]
 
     /// O tipo de serviço que o servidor publica.
-    static let serviceType = "_vigia._tcp"
+    static let serviceType = "_argos._tcp"
 
     func start() {
         guard browser == nil else { return }

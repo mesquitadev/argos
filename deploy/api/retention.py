@@ -72,7 +72,7 @@ def write(values: dict) -> dict:
         current[key] = number
 
     CONF.parent.mkdir(parents=True, exist_ok=True)
-    body = "# Escrito pelo Vigia. O container de retenção relê a cada volta.\n"
+    body = "# Escrito pelo Argos. O container de retenção relê a cada volta.\n"
     body += "".join(f"{k}={v}\n" for k, v in current.items())
     CONF.write_text(body)
     return current

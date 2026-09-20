@@ -1,4 +1,4 @@
-import { useHls } from "../lib/useVigia";
+import { useHls } from "../lib/useArgos";
 
 /** O mosaico: todas as câmeras ao mesmo tempo.
  *

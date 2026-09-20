@@ -44,7 +44,7 @@ while true; do
 
             OLDEST=$(find /recordings -name "*.mp4" -type f 2>/dev/null | sort | head -1)
             [ -z "$OLDEST" ] && break
-            echo "[vigia] espaço: ${USED_GB}GB usados, ${FREE_GB}GB livres — removendo $(basename "$OLDEST")"
+            echo "[argos] espaço: ${USED_GB}GB usados, ${FREE_GB}GB livres — removendo $(basename "$OLDEST")"
             rm -f "$OLDEST"
         done
 

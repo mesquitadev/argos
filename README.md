@@ -1,6 +1,6 @@
 <div align="center">
 
-# Vigia
+# Argos
 
 **An NVR for macOS.** Records your IP cameras to a server you own, keeps as much
 history as the disk allows, and plays it back natively — the Intelbras Play job,
@@ -10,7 +10,7 @@ built for the Mac.
 
 ---
 
-Vigia is two halves. A recorder that runs on your own machine — a homelab box, a
+Argos is two halves. A recorder that runs on your own machine — a homelab box, a
 NAS, anything that runs Docker — pulling RTSP and writing it to disk in
 segments, deleting the oldest as space runs out, like a conventional DVR. And a
 native macOS client that watches the live feed and searches the recordings on a
@@ -19,11 +19,11 @@ timeline.
 ## The client
 
 ```sh
-brew install --cask mesquitadev/tap/vigia
-xattr -dr com.apple.quarantine /Applications/Vigia.app
+brew install --cask mesquitadev/tap/argos
+xattr -dr com.apple.quarantine /Applications/Argos.app
 ```
 
-Or build from source: `Scripts/bundle.sh` then `open dist/Vigia.app`.
+Or build from source: `Scripts/bundle.sh` then `open dist/Argos.app`.
 
 The recorder announces itself over Bonjour, so the app finds it on its own — no
 IP address to type in.
@@ -60,7 +60,7 @@ time seeks to that second inside the right file, and playback crosses from one
 five-minute segment to the next without a pause, so the file boundaries are
 invisible.
 
-Motion events from the camera say *when* something moved, not *where*. Vigia
+Motion events from the camera say *when* something moved, not *where*. Argos
 works out the where by comparing neighbouring frames as you watch, and draws a
 box around what changed.
 

@@ -202,7 +202,7 @@ def ao_encerrar(*_):
 def main() -> None:
     signal.signal(signal.SIGTERM, ao_encerrar)
     signal.signal(signal.SIGINT, ao_encerrar)
-    log(f"vigiando {REGISTRO}")
+    log(f"argosndo {REGISTRO}")
 
     while not parando:
         try:

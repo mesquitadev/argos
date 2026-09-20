@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>            <string>Vigia</string>
-    <key>CFBundleDisplayName</key>     <string>Vigia</string>
-    <key>CFBundleExecutable</key>      <string>Vigia</string>
-    <key>CFBundleIdentifier</key>      <string>dev.mesquita.Vigia</string>
-    <key>CFBundleIconFile</key>        <string>Vigia</string>
+    <key>CFBundleName</key>            <string>Argos</string>
+    <key>CFBundleDisplayName</key>     <string>Argos</string>
+    <key>CFBundleExecutable</key>      <string>Argos</string>
+    <key>CFBundleIdentifier</key>      <string>dev.mesquita.Argos</string>
+    <key>CFBundleIconFile</key>        <string>Argos</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
     <key>CFBundleShortVersionString</key> <string>1.2.0</string>
     <key>CFBundleVersion</key>         <string>4</string>
@@ -18,7 +18,7 @@
          Bonjour em silêncio: o navegador sobe, e nunca encontra nada. -->
     <key>NSBonjourServices</key>
     <array>
-        <string>_vigia._tcp</string>
+        <string>_argos._tcp</string>
     </array>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Para falar com o gravador e com a câmera na sua rede local.</string>

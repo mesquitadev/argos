@@ -1,4 +1,4 @@
-"""A API do Vigia: sessão, armazenamento e exportação de trechos.
+"""A API do Argos: sessão, armazenamento e exportação de trechos.
 
 Só biblioteca padrão. Um framework traria roteamento e validação que aqui
 caberiam em cinquenta linhas, ao custo de dezenas de megabytes na imagem e de
@@ -146,6 +146,70 @@ def storage_report() -> dict:
     }
 
 
+# Quanto tempo sem gravar novo é sinal de problema. Um segmento dura cinco
+# minutos, então dez cobre a escrita em curso mais uma folga; menos que isso
+# alarmaria a cada troca de arquivo.
+MAX_IDADE_GRAVACAO = int(os.environ.get("MAX_IDADE_GRAVACAO", "600"))
+
+
+def health_report() -> dict:
+    """O estado do gravador, em forma que um monitor entenda sem interpretar.
+
+    A pergunta que importa não é "a porta responde" — ela respondia durante as
+    dezesseis horas em que nada foi gravado. É "existe gravação recente".
+    """
+    agora = datetime.now()
+    # Nome diferente do módulo de propósito: `cameras = cameras.carregar()`
+    # sombreia o módulo e o Python passa a ler a variável local antes de ela
+    # existir — o erro sai como UnboundLocalError e não aponta para a causa.
+    registradas = cameras.carregar()
+    ativas = [c for c in registradas if c.get("enabled", True)]
+
+    por_camera = []
+    tudo_bem = bool(ativas)
+
+    for camera in ativas:
+        segmentos = all_segments(camera["id"])
+        ultimo = segmentos[-1][1] if segmentos else None
+        # A idade é medida pelo arquivo em escrita, não pelo último fechado:
+        # o segmento corrente fica até cinco minutos sem fechar, e cobrá-lo
+        # como atraso daria alarme falso a cada troca.
+        idade = (agora - ultimo).total_seconds() if ultimo else None
+        gravando = idade is not None and idade <= MAX_IDADE_GRAVACAO
+
+        if not gravando:
+            tudo_bem = False
+
+        por_camera.append({
+            "id": camera["id"],
+            "nome": camera.get("name", camera["id"]),
+            "gravando": gravando,
+            "ultimo_trecho": ultimo.isoformat() if ultimo else None,
+            "idade_segundos": round(idade) if idade is not None else None,
+            "trechos": len(segmentos),
+        })
+
+    try:
+        uso = shutil.disk_usage(RECORDINGS)
+        livre_gb = round(uso.free / 1024**3, 1)
+        # Menos de cinco gigabytes é quando a retenção deixa de conseguir
+        # trabalhar e quem para de gravar é o próprio sistema.
+        disco_ok = uso.free > 5 * 1024**3
+    except OSError:
+        livre_gb, disco_ok = None, False
+
+    if not disco_ok:
+        tudo_bem = False
+
+    return {
+        "ok": tudo_bem,
+        "cameras": por_camera,
+        "disco_livre_gb": livre_gb,
+        "disco_ok": disco_ok,
+        "em": agora.isoformat(),
+    }
+
+
 def system_report() -> dict:
     """O que está rodando e desde quando — a informação que hoje só existe no SSH."""
     camera = os.environ.get("CAMERA_HOST", "")
@@ -226,7 +290,7 @@ def cleanup_exports() -> None:
 # ---------- HTTP ----------
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "vigia"
+    server_version = "argos"
 
     def log_message(self, *args):  # silencia o log por requisição
         pass
@@ -268,6 +332,17 @@ class Handler(BaseHTTPRequestHandler):
         partes = urllib.parse.urlparse(self.path)
         path = partes.path
         query = urllib.parse.parse_qs(partes.query)
+
+        # Saúde: a única rota sem sessão, de propósito. Um monitor externo não
+        # tem como fazer login, e exigir isso tornaria o sistema inobservável —
+        # que foi exatamente o que deixou a gravação parada dezesseis horas sem
+        # ninguém saber. Responde só estado e idades, nunca conteúdo.
+        if path == "/api/health":
+            relatorio = health_report()
+            # 200 quando está tudo bem, 503 quando não: é assim que um monitor
+            # decide sem precisar interpretar o corpo da resposta.
+            self.send_json(relatorio, 200 if relatorio["ok"] else 503)
+            return
 
         # O nginx pergunta aqui antes de servir qualquer coisa protegida.
         if path == "/api/auth":
@@ -385,7 +460,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "video/mp4")
             self.send_header("Content-Length", str(f.stat().st_size))
             self.send_header("Content-Disposition",
-                             f'attachment; filename="vigia_{m.group(1)[:8]}.mp4"')
+                             f'attachment; filename="argos_{m.group(1)[:8]}.mp4"')
             self.end_headers()
             with f.open("rb") as fh:
                 shutil.copyfileobj(fh, self.wfile)

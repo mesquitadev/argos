@@ -18,6 +18,6 @@ timedatectl | sed -n '1,4p'
 
 echo
 echo "==> Agora renomeie o acervo gravado sob o fuso antigo:"
-echo "    sudo ./corrige-fuso-arquivos.sh /srv/vigia -3"
+echo "    sudo ./corrige-fuso-arquivos.sh /srv/argos -3"
 echo "==> E recrie os containers, para pegarem o fuso novo:"
 echo "    docker compose up -d"

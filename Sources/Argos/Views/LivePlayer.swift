@@ -11,7 +11,7 @@ import AVKit
 /// player de HLS ao vivo escorrega para trás. Cada engasgo de rede acumula
 /// atraso, e em minutos a "imagem ao vivo" está mostrando o passado — ou
 /// congela, quando o servidor já apagou os segmentos que o player ainda
-/// esperava. Por isso ele se vigia e volta para a borda quando fica para trás.
+/// esperava. Por isso ele se argos e volta para a borda quando fica para trás.
 struct LivePlayer: NSViewRepresentable {
     let url: URL
     /// Atraso tolerado antes de pular para o presente.

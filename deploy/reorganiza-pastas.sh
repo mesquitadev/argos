@@ -7,7 +7,7 @@
 #
 # Simula por padrão. Use --aplicar para valer.
 set -euo pipefail
-RAIZ="${1:-/srv/vigia}"
+RAIZ="${1:-/srv/argos}"
 APLICAR="${2:-}"
 
 python3 - "$RAIZ" "$APLICAR" <<'PY'

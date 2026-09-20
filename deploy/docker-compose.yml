@@ -2,12 +2,12 @@
 services:
   retention:
     image: alpine:3.20
-    container_name: vigia-retention
+    container_name: argos-retention
     entrypoint: ["/bin/sh", "/app/retention.sh"]
     volumes:
       - ./api-config:/config
       - ./retention.sh:/app/retention.sh:ro
-      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
+      - ${RECORDINGS_PATH:-/srv/argos}:/recordings
     environment:
       TZ: America/Fortaleza
       # Teto de espaço e idade. O que vier primeiro manda — igual a um DVR.
@@ -19,30 +19,15 @@ services:
     mem_limit: 64m
 
   # Converte o fluxo em HLS para o app reproduzir nativamente, sem VLCKit.
-  indexer:
-    image: alpine:3.20
-    container_name: vigia-indexer
-    entrypoint: ["/bin/sh", "/config/index.sh"]
-    volumes:
-      - ./index.sh:/config/index.sh:ro
-      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings:ro
-      - hls-data:/hls
-    environment:
-      TZ: America/Fortaleza
-      CAMERA_ID: ${CAMERA_ID:-cam1}
-    restart: unless-stopped
-    mem_limit: 64m
-
-  # Serve o ao vivo, o índice e as gravações para o app.
   web:
     image: nginx:alpine
-    container_name: vigia-web
+    container_name: argos-web
     network_mode: host
     volumes:
       - ./web:/web:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - hls-data:/hls:ro
-      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings:ro
+      - ${RECORDINGS_PATH:-/srv/argos}:/recordings:ro
     restart: unless-stopped
     mem_limit: 64m
 
@@ -50,7 +35,7 @@ services:
   # registra para a linha do tempo do app.
   events:
     image: python:3.12-alpine
-    container_name: vigia-events
+    container_name: argos-events
     command: ["python", "-u", "/config/events.py"]
     volumes:
       - ./api-config:/config-cameras:ro
@@ -70,7 +55,7 @@ services:
       options: { max-size: "5m", max-file: "2" }
 
   mdns:
-    container_name: vigia-mdns
+    container_name: argos-mdns
     image: python:3.12-alpine
     restart: unless-stopped
     # mDNS é multicast: de dentro de uma rede isolada do Docker o anúncio não
@@ -86,14 +71,14 @@ services:
       CAMERA_ID: cam1
 
   api:
-    container_name: vigia-api
+    container_name: argos-api
     build: ./api
     network_mode: host
     restart: unless-stopped
     volumes:
       - hls-data:/hls:ro
       - ./api-config:/config
-      - /srv/vigia:/recordings:ro
+      - /srv/argos:/recordings:ro
       - ./exports:/exports
     environment:
       TZ: America/Fortaleza
@@ -104,7 +89,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
 
   supervisor:
-    container_name: vigia-supervisor
+    container_name: argos-supervisor
     # Mesma imagem da API: precisa de Python e ffmpeg, exatamente como ela.
     build: ./api
     restart: unless-stopped
@@ -112,7 +97,7 @@ services:
     volumes:
       - ./supervisor.py:/config/supervisor.py:ro
       - ./api-config:/config-cameras:ro
-      - ${RECORDINGS_PATH:-/srv/vigia}:/recordings
+      - ${RECORDINGS_PATH:-/srv/argos}:/recordings
       - hls-data:/hls
     environment:
       TZ: America/Fortaleza
@@ -120,7 +105,7 @@ services:
       SEGMENT_SECONDS: ${SEGMENT_SECONDS:-300}
 
   detector:
-    container_name: vigia-detector
+    container_name: argos-detector
     build:
       context: .
       dockerfile: Dockerfile.detector

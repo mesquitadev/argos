@@ -1,14 +1,14 @@
-"""Administração de usuários do Vigia.
+"""Administração de usuários do Argos.
 
 Existe porque trocar senha por comando de uma linha com Python embutido é
 frágil: qualquer indentação acidental ao colar quebra, e a senha passa pelo
 histórico do shell. Aqui ela é digitada sem eco e não fica em lugar nenhum.
 
 Uso:
-    docker exec -it vigia-api python3 /api/manage.py listar
-    docker exec -it vigia-api python3 /api/manage.py senha <usuário>
-    docker exec -it vigia-api python3 /api/manage.py criar <usuário> [--leitura]
-    docker exec -it vigia-api python3 /api/manage.py remover <usuário>
+    docker exec -it argos-api python3 /api/manage.py listar
+    docker exec -it argos-api python3 /api/manage.py senha <usuário>
+    docker exec -it argos-api python3 /api/manage.py criar <usuário> [--leitura]
+    docker exec -it argos-api python3 /api/manage.py remover <usuário>
 """
 from __future__ import annotations
 

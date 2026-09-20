@@ -13,12 +13,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct VigiaApp: App {
+struct ArgosApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel()
 
     var body: some Scene {
-        Window("Vigia", id: "main") {
+        Window("Argos", id: "main") {
             ContentView()
                 .environment(model)
                 .frame(minWidth: 980, minHeight: 620)

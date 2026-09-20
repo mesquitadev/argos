@@ -4,7 +4,7 @@ Roda como container na rede do host — mDNS é multicast, e de dentro de uma
 rede isolada do Docker os pacotes não chegam a ninguém.
 
 Vive em container em vez de como pacote no host pelo mesmo motivo que o resto
-do Vigia: sobe junto com o stack, some junto com ele, e não pede root.
+do Argos: sobe junto com o stack, some junto com ele, e não pede root.
 """
 import os
 import signal
@@ -15,8 +15,8 @@ from zeroconf import ServiceInfo, Zeroconf
 
 PORT = int(os.environ.get("WEB_PORT", "8088"))
 CAMERA = os.environ.get("CAMERA_ID", "cam1")
-NOME = os.environ.get("RECORDER_NAME") or f"Gravador Vigia ({socket.gethostname()})"
-TIPO = "_vigia._tcp.local."
+NOME = os.environ.get("RECORDER_NAME") or f"Gravador Argos ({socket.gethostname()})"
+TIPO = "_argos._tcp.local."
 
 
 def endereco_local() -> str:
@@ -49,7 +49,7 @@ def main() -> None:
 
     zeroconf = Zeroconf()
     zeroconf.register_service(info)
-    print(f"[vigia-mdns] anunciado: {NOME} em {ip}:{PORT}", flush=True)
+    print(f"[argos-mdns] anunciado: {NOME} em {ip}:{PORT}", flush=True)
 
     parar = signal.Event() if hasattr(signal, "Event") else None
     try:
@@ -62,7 +62,7 @@ def main() -> None:
         # gravador que acabou de ser desligado.
         zeroconf.unregister_service(info)
         zeroconf.close()
-        print("[vigia-mdns] anúncio retirado", flush=True)
+        print("[argos-mdns] anúncio retirado", flush=True)
 
 
 if __name__ == "__main__":

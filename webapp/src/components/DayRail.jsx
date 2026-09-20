@@ -1,4 +1,4 @@
-import { dayLabel } from "../lib/vigia";
+import { dayLabel } from "../lib/argos";
 
 /** Os dias com gravação, em abas horizontais.
  *

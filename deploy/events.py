@@ -74,7 +74,7 @@ def record(camera, code, action, index):
     }
     with open(caminho_eventos(camera['id']), "a") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    print(f"[vigia-events] {entry['at']} {code} {action}", flush=True)
+    print(f"[argos-events] {entry['at']} {code} {action}", flush=True)
 
 
 def listen(camera):
@@ -129,7 +129,7 @@ def consume(camera, sock):
                 record(camera, code, action, fields.get("index", "0"))
 
 
-def vigiar(camera):
+def argosr(camera):
     """Mantém a escuta de uma câmera viva, com espera crescente entre quedas.
 
     Reconectar em rajada contra uma câmera que reiniciou só atrasa a volta e
@@ -139,11 +139,11 @@ def vigiar(camera):
     delay = 1
     while True:
         try:
-            print(f"[vigia-events] escutando {camera['id']} ({camera['host']})", flush=True)
+            print(f"[argos-events] escutando {camera['id']} ({camera['host']})", flush=True)
             listen(camera)
             delay = 1
         except Exception as failure:      # noqa: BLE001
-            print(f"[vigia-events] {camera['id']}: {failure}", flush=True)
+            print(f"[argos-events] {camera['id']}: {failure}", flush=True)
         time.sleep(delay)
         delay = min(30, delay * 2)
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
             # Uma thread por câmera: a escuta é bloqueante e passa horas
             # parada esperando evento, então threads custam quase nada aqui e
             # evitam que uma câmera fora do ar cale as outras.
-            thread = threading.Thread(target=vigiar, args=(camera,), daemon=True)
+            thread = threading.Thread(target=argosr, args=(camera,), daemon=True)
             thread.start()
             ativas[camera["id"]] = thread
         # Relê o registro: adotar uma câmera deve começar a escutá-la sem

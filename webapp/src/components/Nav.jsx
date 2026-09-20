@@ -26,7 +26,7 @@ export default function Nav({ active, onPick, status, user, onLogout }) {
   // menu a cada visita é atrito repetido.
   const [open, setOpen] = useState(() => {
     try {
-      return localStorage.getItem("vigia.menu") !== "fechado";
+      return localStorage.getItem("argos.menu") !== "fechado";
     } catch {
       return true;
     }
@@ -35,7 +35,7 @@ export default function Nav({ active, onPick, status, user, onLogout }) {
   const toggle = () => {
     setOpen((was) => {
       try {
-        localStorage.setItem("vigia.menu", was ? "fechado" : "aberto");
+        localStorage.setItem("argos.menu", was ? "fechado" : "aberto");
       } catch {
         /* navegação privada bloqueia o armazenamento; o menu ainda funciona */
       }
@@ -53,7 +53,7 @@ export default function Nav({ active, onPick, status, user, onLogout }) {
       >
         <div className="flex items-center gap-2 px-4 py-4">
           <span className="size-7 shrink-0 rounded-full bg-gradient-to-b from-motion to-alert" />
-          {open && <span className="truncate text-sm font-semibold">Vigia</span>}
+          {open && <span className="truncate text-sm font-semibold">Argos</span>}
         </div>
 
         <nav className="flex-1 space-y-0.5 px-2">

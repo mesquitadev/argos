@@ -1,4 +1,4 @@
-import { DAY_SECONDS, SEGMENT_SECONDS, durationLabel, hhmm, positionOf, sameDay, startOfDay } from "../lib/vigia";
+import { DAY_SECONDS, SEGMENT_SECONDS, durationLabel, hhmm, positionOf, sameDay, startOfDay } from "../lib/argos";
 
 /** A linha do tempo de um dia: onde há gravação e onde houve movimento.
  *

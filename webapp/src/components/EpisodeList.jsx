@@ -1,4 +1,4 @@
-import { durationLabel, hhmmss } from "../lib/vigia";
+import { durationLabel, hhmmss } from "../lib/argos";
 
 // Cada coisa com sua marca, para distinguir de relance sem ler o rótulo.
 const MARCAS = {

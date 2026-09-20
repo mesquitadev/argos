@@ -6,8 +6,8 @@ import RecordingsView from "./components/RecordingsView";
 import Settings from "./components/Settings";
 import StoragePanel from "./components/StoragePanel";
 import Wall from "./components/Wall";
-import { useCameras, useVigia } from "./lib/useVigia";
-import { bytes, defaultDay, sameDay } from "./lib/vigia";
+import { useCameras, useArgos } from "./lib/useArgos";
+import { bytes, defaultDay, sameDay } from "./lib/argos";
 
 export default function App() {
   // `undefined` é "ainda não sei", diferente de `null`, que é "não autenticado".
@@ -34,7 +34,7 @@ function Shell({ session, onLogout }) {
   const [focada, setFocada] = useState(null);
   const camera = cameras.find((c) => c.id === focada) || cameras[0] || null;
 
-  const { segments, events, detections, days, error, loaded } = useVigia(camera?.id);
+  const { segments, events, detections, days, error, loaded } = useArgos(camera?.id);
   const [tab, setTab] = useState("live");
   const [dayAt, setDayAt] = useState(null);
 
@@ -83,7 +83,7 @@ function Shell({ session, onLogout }) {
             e repetir seria gastar altura que o vídeo quer. */}
         <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
           <span className="size-6 rounded-full bg-gradient-to-b from-motion to-alert" />
-          <span className="text-sm font-semibold">Vigia</span>
+          <span className="text-sm font-semibold">Argos</span>
           <span className="ml-auto flex items-center gap-1.5 text-[11px] text-neutral-400">
             <i className={`size-[7px] rounded-full ${up ? "bg-live" : "bg-alert"}`} />
             {up ? bytes(total) : "fora do ar"}

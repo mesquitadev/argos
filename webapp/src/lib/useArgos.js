@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { byDay, startedAt } from "./vigia";
+import { byDay, startedAt } from "./argos";
 
 /** As câmeras registradas. */
 export function useCameras() {
@@ -19,7 +19,7 @@ export function useCameras() {
 }
 
 /** Busca e mantém vivos o índice de gravações e os eventos de uma câmera. */
-export function useVigia(cameraId) {
+export function useArgos(cameraId) {
   const [segments, setSegments] = useState([]);
   const [events, setEvents] = useState([]);
   const [detections, setDetections] = useState([]);

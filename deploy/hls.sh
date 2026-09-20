@@ -28,7 +28,7 @@ while true; do
         -hls_segment_filename "/hls/${CAMERA_ID}_%03d.m4s" \
         "/hls/${CAMERA_ID}.m3u8"
 
-    echo "[vigia-hls] fluxo encerrou; nova tentativa em ${DELAY}s"
+    echo "[argos-hls] fluxo encerrou; nova tentativa em ${DELAY}s"
     sleep "$DELAY"
     DELAY=$(( DELAY * 2 )); [ "$DELAY" -gt 30 ] && DELAY=30
 done

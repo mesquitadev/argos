@@ -3,7 +3,7 @@ import DayRail from "./DayRail";
 import Export from "./Export";
 import EpisodeList from "./EpisodeList";
 import Timeline from "./Timeline";
-import { defaultSegment, episodes as episodesOf, hhmmss, locate, rotularEpisodios } from "../lib/vigia";
+import { defaultSegment, episodes as episodesOf, hhmmss, locate, rotularEpisodios } from "../lib/argos";
 
 export default function RecordingsView({ days, events, detections, day, cameras, camera, onPickCamera, onPickDay }) {
   const video = useRef(null);

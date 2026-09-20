@@ -13,7 +13,7 @@
 # inclusive o que o gravador escreveu depois do fuso ter sido acertado.
 set -euo pipefail
 
-RAIZ="${1:-/srv/vigia}"
+RAIZ="${1:-/srv/argos}"
 HORAS="${2:-6}"
 APLICAR="${3:-}"
 

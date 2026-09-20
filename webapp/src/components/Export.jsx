@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { bytes, hhmmss } from "../lib/vigia";
+import { bytes, hhmmss } from "../lib/argos";
 
 /** Recortar um trecho e baixar.
  *

@@ -29,7 +29,7 @@ ffmpeg -hide_banner -loglevel warning \
         -reset_timestamps 1 -strftime 1 -strftime_mkdir 1 \
         "/recordings/${CAMERA_ID}/%Y-%m-%d/${CAMERA_ID}_%Y-%m-%d_%H-%M-%S.mp4"
 
-    echo "[vigia] captura encerrou; nova tentativa em ${DELAY}s"
+    echo "[argos] captura encerrou; nova tentativa em ${DELAY}s"
     sleep "$DELAY"
     # Espera progressiva até 30s: insistir a cada segundo numa câmera desligada
     # só enche o log e a rede.

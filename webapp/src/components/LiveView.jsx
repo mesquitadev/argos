@@ -1,5 +1,5 @@
-import { durationLabel } from "../lib/vigia";
-import { useHls } from "../lib/useVigia";
+import { durationLabel } from "../lib/argos";
+import { useHls } from "../lib/useArgos";
 
 /** O fluxo ao vivo, sem controles de reprodução — não há começo nem fim. */
 export default function LiveView({ active, camera, lastMotion, podeVoltar, onVoltar }) {

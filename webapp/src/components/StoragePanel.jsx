@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { bytes } from "../lib/vigia";
+import { bytes } from "../lib/argos";
 
 /** Quanto disco há, quanto se grava por dia, e quando começa a apagar.
  *

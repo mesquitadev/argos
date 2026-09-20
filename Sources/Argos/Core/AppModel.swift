@@ -29,7 +29,7 @@ final class AppModel {
     /// sete empilhadas não são.
     var selectedDay: Date?
 
-    var server: VigiaServer { VigiaServer(host: serverHost) }
+    var server: ArgosServer { ArgosServer(host: serverHost) }
 
     init() {
         serverHost = Defaults.serverHost
@@ -151,7 +151,7 @@ final class AppModel {
                 async let indexTask = server.index()
                 async let eventsTask = server.events()
                 let index = try await indexTask
-                days = VigiaServer.byDay(index.segments)
+                days = ArgosServer.byDay(index.segments)
                 events = await eventsTask
                 loadError = nil
             } catch {

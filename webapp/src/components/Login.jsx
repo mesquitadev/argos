@@ -36,7 +36,7 @@ export default function Login({ onDone }) {
       >
         <div className="space-y-1 text-center">
           <div className="mx-auto mb-3 size-12 rounded-full bg-gradient-to-b from-motion to-alert" />
-          <h1 className="text-base font-semibold">Vigia</h1>
+          <h1 className="text-base font-semibold">Argos</h1>
           <p className="text-xs text-neutral-400">Entre para ver as câmeras</p>
         </div>
 

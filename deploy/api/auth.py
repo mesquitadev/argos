@@ -22,7 +22,7 @@ import time
 SESSION_SECONDS = 86400 * 7
 
 SECRET = os.environ.get("SESSION_SECRET", "").encode() or secrets.token_bytes(32)
-COOKIE = "vigia_session"
+COOKIE = "argos_session"
 
 
 def hash_password(password: str, salt: bytes | None = None) -> str:
