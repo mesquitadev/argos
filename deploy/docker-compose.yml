@@ -78,7 +78,7 @@ services:
     volumes:
       - hls-data:/hls:ro
       - ./api-config:/config
-      - /srv/argos:/recordings:ro
+      - ${RECORDINGS_PATH:-/srv/argos}:/recordings:ro
       - ./exports:/exports
     environment:
       TZ: America/Fortaleza
