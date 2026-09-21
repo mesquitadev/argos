@@ -24,9 +24,14 @@ linha do tempo e as gravações.
 Copie `deploy/` para a máquina que vai gravar e suba:
 
 ```sh
-cp .env.example .env    # credenciais de administrador e do banco
+sudo ./preparar-servidor.sh   # acerta o fuso do servidor
+cp .env.example .env          # credenciais de administrador
 docker compose up -d
 ```
+
+O fuso vem primeiro de propósito: com o servidor em UTC, o horário no nome dos
+arquivos e o dos eventos da câmera divergem, e a linha do tempo passa a
+desenhar o mesmo instante em dois lugares.
 
 Abra o endereço da máquina na porta 8088, crie a senha, e em **Configurações ›
 Câmeras** clique em **Procurar na rede**. Toda câmera ONVIF responde dizendo
