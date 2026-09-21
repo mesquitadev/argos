@@ -1,6 +1,3 @@
-.build/
-.swiftpm/
-dist/
 .DS_Store
 
 # O arquivo com a senha da câmera. O modelo versionado é o .env.example.
@@ -13,6 +10,5 @@ server/target/
 
 # Aplicação web: dependências e saída de build.
 webapp/node_modules/
-webapp/dist/
-deploy/api-config/
+webapp/deploy/api-config/
 deploy/exports/

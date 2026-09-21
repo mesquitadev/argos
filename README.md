@@ -2,73 +2,75 @@
 
 # Argos
 
-**An NVR for macOS.** Records your IP cameras to a server you own, keeps as much
-history as the disk allows, and plays it back natively — the Intelbras Play job,
-built for the Mac.
+**Um NVR que roda na sua casa.** Grava suas câmeras IP num servidor seu,
+guarda o quanto o disco permitir e mostra tudo no navegador — do celular ao
+desktop, sem nuvem e sem mensalidade.
 
 </div>
 
 ---
 
-Argos is two halves. A recorder that runs on your own machine — a homelab box, a
-NAS, anything that runs Docker — pulling RTSP and writing it to disk in
-segments, deleting the oldest as space runs out, like a conventional DVR. And a
-native macOS client that watches the live feed and searches the recordings on a
-timeline.
+Argos é o guardião de cem olhos da mitologia, que nunca dormia por completo:
+sempre alguns olhos acordados enquanto os outros descansavam.
 
-## The client
+Ele tem duas metades. Um **gravador** que roda na sua máquina — um servidor de
+homelab, um NAS, qualquer coisa com Docker — puxando RTSP e escrevendo em
+disco em trechos, apagando os mais antigos conforme o espaço acaba, como um
+DVR. E uma **aplicação web** servida pelo mesmo lugar, que mostra o ao vivo, a
+linha do tempo e as gravações.
 
-```sh
-brew install --cask mesquitadev/tap/argos
-xattr -dr com.apple.quarantine /Applications/Argos.app
-```
+## Instalação
 
-Or build from source: `Scripts/bundle.sh` then `open dist/Argos.app`.
-
-The recorder announces itself over Bonjour, so the app finds it on its own — no
-IP address to type in.
-
-## The recorder
-
-Copy `deploy/` to the machine that will record, fill in `.env` from
-`.env.example`, and bring it up:
+Copie `deploy/` para a máquina que vai gravar e suba:
 
 ```sh
-cp .env.example .env    # camera address, user, password
+cp .env.example .env    # credenciais de administrador e do banco
 docker compose up -d
 ```
 
-Seven small containers: the recorder, a retention loop, an HLS transcoder for
-live view, an indexer, an event listener that receives the camera's motion
-alerts, nginx, and the Bonjour announcer.
+Abra o endereço da máquina na porta 8088, crie a senha, e em **Configurações ›
+Câmeras** clique em **Procurar na rede**. Toda câmera ONVIF responde dizendo
+fabricante e modelo — você adota, e a gravação começa em segundos. Nenhum
+endereço IP precisa ser digitado.
 
-## Recordings
+## O que ele faz
 
-Video is copied, never re-encoded, so recording costs almost no CPU and the
-quality is exactly what the camera sent. Retention is a circular buffer with
-three limits at once — maximum age, maximum size, and a floor of free space that
-is never eaten — and the most restrictive wins.
+**Várias câmeras**, cada uma com seu gravador e seu fluxo ao vivo, gerenciados
+por um supervisor que lê o registro e mantém os processos certos no ar. O
+mosaico se ajusta à quantidade — uma câmera ocupa a tela, quatro viram 2×2.
 
-HEVC is tagged `hvc1` rather than `hev1`. Apple silently refuses to play `hev1`
-in MP4: the file reports as not playable, with no error explaining why.
+**Uma linha do tempo por dia**, que é o controle e não um enfeite: movimento em
+âmbar acima, gravação em azul abaixo, cursor que anda com o vídeo. Clicar num
+horário salta para aquele segundo, atravessando a fronteira entre arquivos sem
+pausa — os trechos de cinco minutos ficam invisíveis.
 
-## The timeline
+**Detecção do que se moveu**, não só de que algo se moveu. Sombra de nuvem e
+folha ao vento disparam movimento e não são nada; "pessoa às 11:23" vale o que
+"movimento às 11:23" não vale. Roda por gatilho, nunca contínuo.
 
-The day is one continuous track: motion episodes in amber above, recorded
-footage in blue below, with a playhead that moves with the video. Clicking a
-time seeks to that second inside the right file, and playback crosses from one
-five-minute segment to the next without a pause, so the file boundaries are
-invisible.
+**Exportar um trecho**: marque início e fim na linha do tempo e baixe um MP4.
+O corte é feito copiando, sem recodificar — sai em segundos, com a qualidade
+que a câmera gravou.
 
-Motion events from the camera say *when* something moved, not *where*. Argos
-works out the where by comparing neighbouring frames as you watch, and draws a
-box around what changed.
+**Retenção configurável**, com previsão antes de apagar. A tela diz o que a
+política removeria — "40 trechos, 12 GB, até anteontem" — antes de você
+confirmar.
 
-## Requirements
+**Usuários**, com papéis de administrador e de leitura. Sem isso, qualquer
+pessoa na rede abre o endereço e assiste à sua casa.
 
-macOS 14 or later for the client. Docker on the recorder. An ONVIF/RTSP camera —
-developed against an Intelbras VIP 3230 B, which speaks the Dahua CGI API.
+## Compatibilidade
 
-## License
+Câmeras **Dahua e compatíveis** — o que inclui Intelbras, que revende Dahua com
+firmware próprio — mais **ONVIF genérico** para descoberta e RTSP. Desenvolvido
+contra uma Intelbras VIP 3230 B.
+
+## Requisitos
+
+Docker na máquina que grava. Qualquer navegador para assistir; o Safari e o
+iPhone tocam HLS nativamente, e os demais recebem a biblioteca junto com a
+página — a casa não deve depender de internet para ver a própria câmera.
+
+## Licença
 
 MIT © Paulo Victor Mesquita
